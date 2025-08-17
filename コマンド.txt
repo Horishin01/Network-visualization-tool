@@ -1,2 +1,0 @@
-//サーバー起動
-py -m http.server
