@@ -1,35 +1,27 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
     <title>ネットワーク学習ツール</title>
-    <link rel="stylesheet" href="CSS/style.css" />
+    <link rel="stylesheet" href="CSS/style.css">
 </head>
 <body>
-    <header>
-        <h1>ネットワーク学習ツール</h1>
-        <nav>
-            <ul>
-                <li><a href="#">ホーム</a></li>
-                <li><a href="#">トレーニング</a></li>
-                <li><a href="#">ビジュアライゼーション</a></li>
-                <li><a href="#">設定</a></li>
-                <li><a href="#">規約およびライセンス</a></li>
-            </ul>
-        </nav>
-    </header>
+    <!-- 共通ヘッダー -->
+    <div id="header-placeholder"></div>
+
+    <!-- メインコンテンツ -->python -m http.server
 
     <main>
-        <section class="intro">
-            <h2>ネットワークの学習へようこそ！</h2>
-            <p>このツールでは、ネットワークの基礎から可視化まで幅広く体験できます。</p>
-            <button onclick="location.href='start.html'">今すぐはじめる</button>
+        <section class="main-section">
+            <h2>ネットワーク学習へようこそ</h2>
+            <p>ここではネットワークの基本から実践まで学ぶことができます。</p>
+            <a href="training.html" class="main-button">今すぐ始める</a>
         </section>
     </main>
 
-    <footer>
-        <p>&copy; 2025 ネットワーク学習プロジェクト</p>
-    </footer>
+    <!-- 共通フッター -->
+    <div id="footer-placeholder"></div>
+
+    <script src="JavaScript/loadCommon.js"></script>
 </body>
 </html>
