@@ -1,37 +1,135 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>ネットワーク学習ツール</title>
-    <link rel="stylesheet" href="../CSS/style.css">
+  <meta charset="UTF-8" />
+  <title>ネットワーク学習ツール</title>
+
+  <!-- 既存CSS -->
+  <link rel="stylesheet" href="../CSS/style.css" />
+  <link rel="stylesheet" href="../CSS/map.css" />
+
+  <!-- Leaflet（地図用） -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- このページだけで完結させるための最小CSS（map.cssがなくても動く） -->
+  <style>
+    :root { --map-border:#c5ccd6; --map-bg:#f7f9fc; }
+    .page-wrap  { max-width:1200px; margin:0 auto; padding:24px; }
+    header,footer{ max-width:1200px; margin:0 auto; }
+    nav ul { list-style:none; padding:0; display:flex; gap:16px; }
+    nav a  { text-decoration:none; color:#1a1a1a; }
+
+    /* 固定サイズの地図コンテナ（1200×520）。狭い画面は横スクロールで崩さない */
+    .map-wrap      { display:flex; justify-content:center; margin-block:16px; overflow-x:auto; }
+    .map-wrap.fixed #map {
+      width:1200px;           /* ← 必要に応じて変更 */
+      height:520px;           /* ← 必要に応じて変更 */
+      border:1px solid var(--map-border);
+      border-radius:12px;
+      background:var(--map-bg);
+    }
+    /* Leaflet 背景色を角丸に合わせる（視覚的ノイズ低減） */
+    .leaflet-container { background:var(--map-bg); }
+  </style>
 </head>
 <body>
 
-    <!-- ▼ 共通ヘッダー -->
-    <header>
-        <h1>ネットワーク学習ツール</h1>
-        <nav>
-            <ul>
-                <li><a href="../index.html">ホーム</a></li>
-                <li><a href="#">トレーニング</a></li>
-                <li><a href="#">このサイトについて</a></li>
-            </ul>
-        </nav>
-    </header>
+  <!-- ▼ 共通ヘッダー -->
+  <header>
+    <h1>ネットワーク学習ツール</h1>
+    <nav>
+      <ul>
+        <li><a href="../index.html">ホーム</a></li>
+        <li><a href="#">トレーニング</a></li>
+        <li><a href="#">このサイトについて</a></li>
+      </ul>
+    </nav>
+  </header>
 
-    <!-- ▼ メインコンテンツ -->
-    <main>
-        <section class="main-section">
+  <!-- ▼ メインコンテンツ -->
+  <main class="page-wrap">
+    <section class="main-section">
+      <h2>日本地図（インタラクティブ）</h2>
 
-            <h1>hallowHowld</h1>
-            <p>body</p>
-        </section>
-    </main>
+      <!-- 固定サイズ地図。スマホ等で小さい場合は横スクロールで表示 -->
+      <div class="map-wrap fixed">
+        <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
+      </div>
 
-    <!-- ▼ 共通フッター -->
-    <footer>
-        <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
-    </footer>
+      <!-- JavaScript無効時の静的フォールバック（任意） -->
+      <noscript>
+        <p>JavaScript が無効のため静的地図を表示します。</p>
+        <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="900" />
+      </noscript>
+    </section>
+  </main>
 
+  <!-- ▼ 共通フッター -->
+  <footer>
+    <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // ===== 地図の初期化 =====
+    const INITIAL_ZOOM = 5; // 最小ズーム（=初期ズーム）。これより小さくは縮小不可
+    const JAPAN_BOUNDS = L.latLngBounds(
+      [24.0, 122.0],  // 南西（与那国島付近）
+      [46.2, 146.0]   // 北東（根室～色丹付近）
+    );
+
+    const map = L.map('map', {
+      zoomControl: true,
+      attributionControl: true,
+      minZoom: INITIAL_ZOOM,   // ← 最小ズーム固定（縮小不可）
+      maxZoom: 12,             // ← 拡大の上限（必要に応じて変更）
+      maxBounds: JAPAN_BOUNDS, // ← 日本付近から大きく外へはみ出さない
+      maxBoundsViscosity: 1.0  // ← 端でピタッと止まる
+    }).setView([36.5, 137.0], INITIAL_ZOOM);
+
+    // タイル（OpenStreetMap）
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ツールチップ付きのヘルパー
+    const pin = (name, lat, lng) =>
+      L.marker([lat, lng], { title: name })
+       .addTo(map)
+       .bindTooltip(name, { direction: 'top', offset: [0,-8] });
+
+    // 通常の都市ピン
+    pin('札幌', 43.0621, 141.3544);
+    pin('大阪', 34.7025, 135.4959);
+    pin('福岡', 33.5902, 130.4017);
+
+    // ★ 東京：クリックで home.html へ遷移
+    const tokyo = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
+    tokyo.on('click', () => { window.location.href = 'home.html'; });
+
+    // クリック可能であることを見た目で示す（指カーソル）
+    tokyo.on('add', () => {
+      const el = tokyo._icon;
+      if (el) el.style.cursor = 'pointer';
+    });
+
+    // 将来：通信アニメ線の例（FWブロック等の表現に）
+    // L.polyline([[35.6812,139.7671],[34.7025,135.4959]], { color:'#005CFF', weight:3 }).addTo(map);
+
+    // もし後からCSSで #map のサイズを変更した場合は、以下を呼ぶと崩れません
+    // map.invalidateSize();
+  </script>
 </body>
 </html>

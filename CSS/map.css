@@ -1,0 +1,53 @@
+/* ===========================
+   Map Styles (Leaflet / OSM)
+   =========================== */
+
+:root {
+  --map-border: #c5ccd6;
+  --map-bg: #f7f9fc;
+  --radius: 12px;
+}
+
+/* 外枠：中央寄せ & 余白 */
+.map-wrap {
+  display: flex;
+  justify-content: center;
+  margin-block: 16px;
+}
+
+/* 完全固定サイズ（推奨 1200x520） */
+.map-wrap.fixed #map {
+  width: 1200px;   /* ← 好みで変更OK */
+  height: 520px;   /* ← 好みで変更OK */
+  border: 1px solid var(--map-border);
+  border-radius: var(--radius);
+  background: var(--map-bg);
+}
+
+/* 画面が狭い場合ははみ出す可能性があるため任意で横スクロール許可 */
+.map-wrap.fixed {
+  overflow-x: auto;
+}
+
+/* 横スクロール派：PCでは固定、スマホ等はスクロールで崩さない */
+.map-wrap.scroll {
+  overflow-x: auto;
+  padding-bottom: 8px; /* スクロールバー分の余白 */
+}
+.map-wrap.scroll #map {
+  width: 1200px;               /* 固定したい基準サイズ */
+  height: 520px;
+  border: 1px solid var(--map-border);
+  border-radius: var(--radius);
+  background: var(--map-bg);
+}
+
+/* Leafletのコントロールも角丸に合わせて少しだけ整える（任意） */
+.leaflet-control-zoom a {
+  border-radius: 8px !important;
+}
+
+/* 角丸の見た目を保つため、タイルの下地色も合わせる（任意） */
+.leaflet-container {
+  background: var(--map-bg);
+}

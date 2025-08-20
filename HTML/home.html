@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>自宅Wi-Fiシナリオ | ネットワーク学習ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../CSS/style.css" />
+  <link rel="stylesheet" href="../CSS/home.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>自宅Wi-Fiを導入する（学習シナリオ）</h1>
+    <nav><a href="training.html">← 地図に戻る</a></nav>
+  </header>
+
+  <main class="wrap">
+    <!-- 学習目標 -->
+    <section class="intro card">
+      <h2>学習目標</h2>
+      <ul>
+        <li>Wi-Fi の <strong>SSID／パスワード／暗号方式／周波数帯</strong> を設定できる</li>
+        <li>端末ごとに <strong>IP アドレスが異なる</strong> ことを理解する</li>
+        <li><strong>DHCP</strong> により再接続で IP が変わることを体験する</li>
+        <li><strong>有線LAN</strong> では別セグメントにする構成例を体験する（学習用）</li>
+      </ul>
+    </section>
+
+    <div class="grid-2">
+      <!-- 左：家の図とドロップ領域 -->
+      <section class="house card">
+        <h2>自宅ネットワーク（ミニマップ）</h2>
+        <div class="house-canvas" id="houseCanvas">
+          <div class="house-roof"></div>
+          <div class="house-body" id="houseBody">
+            <!-- ケーブル用SVG（デバイスの下に描画） -->
+            <svg id="cableSvg" class="cable-svg" width="100%" height="100%"></svg>
+
+            <div class="wan">光</div>
+            <div class="onu">ONU</div>
+
+            <!-- ルーター（LANポート付き） -->
+            <div class="router" id="routerBadge">
+              Router<br><small>未設定</small>
+              <span id="routerPort1" class="port" title="LANポート"></span>
+            </div>
+
+            <!-- 参考：配置済み例（空でOK、ドラッグで増やす） -->
+            <!-- デバイスはJSで生成され .device 要素として家の中に追加されます -->
+          </div>
+        </div>
+
+        <details class="note">
+          <summary>学習メモ</summary>
+          <p>学習を簡単にするため、ここでは <code>無線: 192.168.0.x</code> と <code>有線: 192.168.10.x</code> に分けています。</p>
+        </details>
+      </section>
+
+      <!-- 右：操作パネル（パレット＋設定） -->
+      <section class="panel card">
+        <h2>機器パレット（ドラッグ＆ドロップで配置）</h2>
+        <div class="palette">
+          <div class="palette-item" data-type="pc">PC</div>
+          <div class="palette-item" data-type="phone">スマホ</div>
+          <div class="palette-item" data-type="tablet">タブレット</div>
+          <div class="palette-item" data-type="game">ゲーム機</div>
+          <div class="palette-item" data-type="printer">プリンタ(有線)</div>
+        </div>
+
+        <label class="toggle">
+          <input type="checkbox" id="cableToggle" />
+          ケーブル接続モード（Router → 機器をクリックで配線）
+        </label>
+
+        <hr/>
+
+        <h2>ステップ1：Wi-Fi を設定する</h2>
+        <form id="wifiForm" class="form">
+          <label>SSID<input id="ssid" placeholder="MyHomeWiFi" required /></label>
+          <label>パスワード<input id="password" type="password" minlength="8" placeholder="8文字以上" required /></label>
+          <label>暗号方式
+            <select id="enc">
+              <option value="WPA2-AES">WPA2-AES（推奨）</option>
+              <option value="WPA2-TKIP">WPA2-TKIP（非推奨：古い）</option>
+              <option value="WPA3">WPA3-Personal（対応端末のみ）</option>
+            </select>
+          </label>
+          <fieldset class="band">
+            <legend>周波数帯（複数選択可）</legend>
+            <label><input type="checkbox" id="b24" checked /> 2.4 GHz（遠くまで届く・低速）</label>
+            <label><input type="checkbox" id="b5"  /> 5 GHz（高速・短距離）</label>
+          </fieldset>
+          <button class="btn primary" type="submit">適用</button>
+          <div id="wifiHint" class="hint"></div>
+        </form>
+
+        <h2>ユーティリティ</h2>
+        <div class="inline-actions">
+          <button class="btn ghost" id="powerCycle">選択中デバイスの電源入れ直し（DHCP再取得）</button>
+          <button class="btn ghost" id="showIPs">IP を一覧表示</button>
+        </div>
+
+        <h2>ステップ2：WEB 表示時間の比較</h2>
+        <p class="lead">国内/海外/混雑の違いで表示時間がどう変わるか体験します。</p>
+        <div class="webtest">
+          <label><input type="checkbox" class="site" value="domestic" checked> 国内A（東京）</label>
+          <label><input type="checkbox" class="site" value="oversea"> 海外B（米国）</label>
+          <label><input type="checkbox" class="site" value="congested"> 国内C（混雑）</label>
+          <button class="btn primary" id="runTest">比較テスト開始</button>
+          <table class="table" id="latencyTable">
+            <thead><tr><th>サイト</th><th>表示時間（ms）</th><th>経路（例）</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <h2>ログ</h2>
+        <div id="log" class="log"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <small>&copy; 2025 ネットワーク学習プロジェクト</small>
+  </footer>
+
+  <script src="../JS/home.js"></script>
+</body>
+</html>
