@@ -1,127 +1,134 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>自宅Wi-Fiシナリオ | ネットワーク学習ツール</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="../CSS/style.css" />
-  <link rel="stylesheet" href="../CSS/home.css" />
+    <meta charset="UTF-8" />
+    <title>自宅 Wi-Fi 構築シミュレータ</title>
+
+    <!-- 基準スタイル（全ページ共通） -->
+    <link rel="stylesheet" href="../CSS/style.css" />
+
+    <!-- このページ専用の最小上書き -->
+    <link rel="stylesheet" href="../CSS/home.css" />
 </head>
 <body>
-  <header class="site-header">
-    <h1>自宅Wi-Fiを導入する（学習シナリオ）</h1>
-    <nav><a href="training.html">← 地図に戻る</a></nav>
-  </header>
+    <!-- 共通ヘッダー（style.css の見た目を使用） -->
+    <header class="site-header">
+        <div class="container header-row">
+            <h1 class="site-title">ネットワーク学習ツール</h1>
+            <nav class="site-nav">
+                <a href="../index.html">ホーム</a>
+                <a href="./training.html">トレーニング</a>
+                <a href="./sub.html">このサイトについて</a>
+            </nav>
+        </div>
+    </header>
 
-  <main class="wrap">
-    <!-- 学習目標 -->
-    <section class="intro card">
-      <h2>学習目標</h2>
-      <ul>
-        <li>Wi-Fi の <strong>SSID／パスワード／暗号方式／周波数帯</strong> を設定できる</li>
-        <li>端末ごとに <strong>IP アドレスが異なる</strong> ことを理解する</li>
-        <li><strong>DHCP</strong> により再接続で IP が変わることを体験する</li>
-        <li><strong>有線LAN</strong> では別セグメントにする構成例を体験する（学習用）</li>
-      </ul>
-    </section>
+    <main class="container">
+        <section class="stack-lg">
+            <h2>自宅 Wi-Fi 構築シミュレータ</h2>
+            <ul class="lead-list">
+                <li>SSID／パスワード／暗号方式／周波数帯を設定できる</li>
+                <li>端末ごとに <b>IP アドレスが異なる</b> ことを理解する</li>
+                <li>DHCP により再接続で IP が変わることを体験する</li>
+                <li>有線 LAN（RJ45）と 光回線（ONU/WAN）の違いを理解する</li>
+            </ul>
+        </section>
 
-    <div class="grid-2">
-      <!-- 左：家の図とドロップ領域 -->
-      <section class="house card">
-        <h2>自宅ネットワーク（ミニマップ）</h2>
-        <div class="house-canvas" id="houseCanvas">
-          <div class="house-roof"></div>
-          <div class="house-body" id="houseBody">
-            <!-- ケーブル用SVG（デバイスの下に描画） -->
-            <svg id="cableSvg" class="cable-svg" width="100%" height="100%"></svg>
+        <!-- 2カラム：左=キャンバス、右=パレット/設定 -->
+        <section class="home-grid">
+            <!-- 左：家キャンバス -->
+            <div class="card home-canvas">
+                <!-- 屋根（style.css のカードに被せるだけ） -->
+                <div class="home-roof" aria-hidden="true"></div>
 
-            <div class="wan">光</div>
-            <div class="onu">ONU</div>
+                <!-- ステージ（相対位置基準） -->
+                <div id="houseBody" class="home-stage" tabindex="0" aria-label="自宅ネットワーク（ミニマップ）">
+                    <!-- 回線アイコン「光」 -->
+                    <button id="wanAnchor" class="home-wan" title="光回線（外部）">光</button>
 
-            <!-- ルーター（LANポート付き） -->
-            <div class="router" id="routerBadge">
-              Router<br><small>未設定</small>
-              <span id="routerPort1" class="port" title="LANポート"></span>
+                    <!-- ケーブル描画用レイヤ（SVG） -->
+                    <svg id="cableSvg" class="home-cable-layer" width="100%" height="100%"
+                         aria-hidden="true"></svg>
+                    <!-- ここへ JS が機器（router/pc/onu…）を追加します -->
+                </div>
+
+                <!-- 学習メモ（折りたたみ） -->
+                <details class="home-note">
+                    <summary>学習メモ</summary>
+                    <p>学習簡略化のため、無線は <code>192.168.0.x</code>、有線は <code>192.168.10.x</code> を使用。</p>
+                </details>
             </div>
 
-            <!-- 参考：配置済み例（空でOK、ドラッグで増やす） -->
-            <!-- デバイスはJSで生成され .device 要素として家の中に追加されます -->
-          </div>
+            <!-- 右：パレット／設定 -->
+            <aside class="card home-side">
+                <h3 class="card-title">機器パレット（ドラッグ＆ドロップで配置）</h3>
+                <p class="muted">配置後はドラッグで移動。選択して <kbd>Delete</kbd> または「×」で削除できます。</p>
+
+                <div class="home-palette">
+                    <button class="palette-item" data-type="router">ルーター</button>
+                    <button class="palette-item" data-type="onu">ONU</button>
+                    <button class="palette-item" data-type="pc">PC</button>
+                    <button class="palette-item" data-type="phone">スマホ</button>
+                    <button class="palette-item" data-type="tablet">タブレット</button>
+                    <button class="palette-item" data-type="game">ゲーム機</button>
+                    <button class="palette-item" data-type="printer">プリンタ(有線)</button>
+                    <button class="palette-item tool" data-tool="rj45">RJ45 ケーブル</button>
+                    <button class="palette-item tool" data-tool="fiber">光ファイバー</button>
+                </div>
+
+                <label class="home-toggle">
+                    <input id="cableToggle" type="checkbox" />
+                    ケーブル接続モード（クリック／ドラッグで配線）
+                </label>
+                <div id="cableStatus" class="badge">接続ステータス: OFF</div>
+
+                <hr />
+
+                <h3 class="card-title">ステップ1：Wi-Fi を設定する</h3>
+                <form id="wifiForm" class="stack-sm" autocomplete="off">
+                    <label class="field">
+                        <span>SSID</span>
+                        <input id="ssid" type="text" value="MyHomeWiFi" />
+                    </label>
+                    <label class="field">
+                        <span>パスワード</span>
+                        <input id="password" type="password" placeholder="8文字以上" />
+                    </label>
+                    <label class="field">
+                        <span>暗号方式</span>
+                        <select id="enc">
+                            <option>WPA2-AES（推奨）</option>
+                            <option>WPA2-TKIP</option>
+                            <option>WPA3</option>
+                        </select>
+                    </label>
+                    <fieldset class="field">
+                        <legend>周波数帯（複数選択可）</legend>
+                        <label><input id="b24" type="checkbox" checked /> 2.4 GHz</label>
+                        <label><input id="b5" type="checkbox" /> 5 GHz</label>
+                    </fieldset>
+                    <button class="btn" type="submit">適用</button>
+                    <p id="wifiHint" class="hint">未設定</p>
+                </form>
+
+                <hr />
+
+                <h3 class="card-title">ユーティリティ</h3>
+                <div class="row gap-sm">
+                    <button id="powerCycle" class="btn ghost">選択中デバイスの電源入れ直し（DHCP再取得）</button>
+                    <button id="showIPs" class="btn ghost">IP を一覧表示</button>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <small>© 2025 ネットワーク学習プロジェクト. All Rights Reserved.</small>
         </div>
+    </footer>
 
-        <details class="note">
-          <summary>学習メモ</summary>
-          <p>学習を簡単にするため、ここでは <code>無線: 192.168.0.x</code> と <code>有線: 192.168.10.x</code> に分けています。</p>
-        </details>
-      </section>
-
-      <!-- 右：操作パネル（パレット＋設定） -->
-      <section class="panel card">
-        <h2>機器パレット（ドラッグ＆ドロップで配置）</h2>
-        <div class="palette">
-          <div class="palette-item" data-type="pc">PC</div>
-          <div class="palette-item" data-type="phone">スマホ</div>
-          <div class="palette-item" data-type="tablet">タブレット</div>
-          <div class="palette-item" data-type="game">ゲーム機</div>
-          <div class="palette-item" data-type="printer">プリンタ(有線)</div>
-        </div>
-
-        <label class="toggle">
-          <input type="checkbox" id="cableToggle" />
-          ケーブル接続モード（Router → 機器をクリックで配線）
-        </label>
-
-        <hr/>
-
-        <h2>ステップ1：Wi-Fi を設定する</h2>
-        <form id="wifiForm" class="form">
-          <label>SSID<input id="ssid" placeholder="MyHomeWiFi" required /></label>
-          <label>パスワード<input id="password" type="password" minlength="8" placeholder="8文字以上" required /></label>
-          <label>暗号方式
-            <select id="enc">
-              <option value="WPA2-AES">WPA2-AES（推奨）</option>
-              <option value="WPA2-TKIP">WPA2-TKIP（非推奨：古い）</option>
-              <option value="WPA3">WPA3-Personal（対応端末のみ）</option>
-            </select>
-          </label>
-          <fieldset class="band">
-            <legend>周波数帯（複数選択可）</legend>
-            <label><input type="checkbox" id="b24" checked /> 2.4 GHz（遠くまで届く・低速）</label>
-            <label><input type="checkbox" id="b5"  /> 5 GHz（高速・短距離）</label>
-          </fieldset>
-          <button class="btn primary" type="submit">適用</button>
-          <div id="wifiHint" class="hint"></div>
-        </form>
-
-        <h2>ユーティリティ</h2>
-        <div class="inline-actions">
-          <button class="btn ghost" id="powerCycle">選択中デバイスの電源入れ直し（DHCP再取得）</button>
-          <button class="btn ghost" id="showIPs">IP を一覧表示</button>
-        </div>
-
-        <h2>ステップ2：WEB 表示時間の比較</h2>
-        <p class="lead">国内/海外/混雑の違いで表示時間がどう変わるか体験します。</p>
-        <div class="webtest">
-          <label><input type="checkbox" class="site" value="domestic" checked> 国内A（東京）</label>
-          <label><input type="checkbox" class="site" value="oversea"> 海外B（米国）</label>
-          <label><input type="checkbox" class="site" value="congested"> 国内C（混雑）</label>
-          <button class="btn primary" id="runTest">比較テスト開始</button>
-          <table class="table" id="latencyTable">
-            <thead><tr><th>サイト</th><th>表示時間（ms）</th><th>経路（例）</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <h2>ログ</h2>
-        <div id="log" class="log"></div>
-      </section>
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <small>&copy; 2025 ネットワーク学習プロジェクト</small>
-  </footer>
-
-  <script src="../JS/home.js"></script>
+    <!-- このページ専用のスクリプト -->
+    <script src="../JS/home.js" defer></script>
 </body>
 </html>

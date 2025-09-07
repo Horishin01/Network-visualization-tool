@@ -39,97 +39,92 @@
 </head>
 <body>
 
-  <!-- ▼ 共通ヘッダー -->
-  <header>
-    <h1>ネットワーク学習ツール</h1>
-    <nav>
-      <ul>
-        <li><a href="../index.html">ホーム</a></li>
-        <li><a href="#">トレーニング</a></li>
-        <li><a href="#">このサイトについて</a></li>
-      </ul>
-    </nav>
-  </header>
+    <!-- ▼ 共通ヘッダー -->
+    <header>
+        <h1>ネットワーク学習ツール</h1>
+        <nav>
+            <ul>
+                <li><a href="../index.html">ホーム</a></li>
+                <li><a href="#">トレーニング</a></li>
+                <li><a href="#">このサイトについて</a></li>
+            </ul>
+        </nav>
+    </header>
 
-  <!-- ▼ メインコンテンツ -->
-  <main class="page-wrap">
-    <section class="main-section">
-      <h2>日本地図（インタラクティブ）</h2>
+    <!-- ▼ メインコンテンツ -->
+    <main class="page-wrap">
+        <section class="main-section">
+            <h2>日本地図（インタラクティブ）</h2>
 
-      <!-- 固定サイズ地図。スマホ等で小さい場合は横スクロールで表示 -->
-      <div class="map-wrap fixed">
-        <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
-      </div>
+            <!-- 固定サイズ地図。スマホ等で小さい場合は横スクロールで表示 -->
+            <div class="map-wrap fixed">
+                <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
+            </div>
 
-      <!-- JavaScript無効時の静的フォールバック（任意） -->
-      <noscript>
-        <p>JavaScript が無効のため静的地図を表示します。</p>
-        <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="900" />
-      </noscript>
-    </section>
-  </main>
+            <!-- JavaScript無効時の静的フォールバック（任意） -->
+            <noscript>
+                <p>JavaScript が無効のため静的地図を表示します。</p>
+                <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="900" />
+            </noscript>
+        </section>
+    </main>
 
-  <!-- ▼ 共通フッター -->
-  <footer>
-    <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
-  </footer>
+    <!-- ▼ 共通フッター -->
+    <footer>
+        <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
+    </footer>
 
-  <!-- Leaflet JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin=""
-  ></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
 
-  <script>
-    // ===== 地図の初期化 =====
-    const INITIAL_ZOOM = 5; // 最小ズーム（=初期ズーム）。これより小さくは縮小不可
-    const JAPAN_BOUNDS = L.latLngBounds(
-      [24.0, 122.0],  // 南西（与那国島付近）
-      [46.2, 146.0]   // 北東（根室～色丹付近）
-    );
+    <script>
+        // ===== 地図の初期化 =====
+        const INITIAL_ZOOM = 5;
+        const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
 
-    const map = L.map('map', {
-      zoomControl: true,
-      attributionControl: true,
-      minZoom: INITIAL_ZOOM,   // ← 最小ズーム固定（縮小不可）
-      maxZoom: 12,             // ← 拡大の上限（必要に応じて変更）
-      maxBounds: JAPAN_BOUNDS, // ← 日本付近から大きく外へはみ出さない
-      maxBoundsViscosity: 1.0  // ← 端でピタッと止まる
-    }).setView([36.5, 137.0], INITIAL_ZOOM);
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: true,
+            minZoom: INITIAL_ZOOM,
+            maxZoom: 12,
+            maxBounds: JAPAN_BOUNDS,
+            maxBoundsViscosity: 1.0
+        }).setView([36.5, 137.0], INITIAL_ZOOM);
 
-    // タイル（OpenStreetMap）
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-    // ツールチップ付きのヘルパー
-    const pin = (name, lat, lng) =>
-      L.marker([lat, lng], { title: name })
-       .addTo(map)
-       .bindTooltip(name, { direction: 'top', offset: [0,-8] });
+        // ヘルパー
+        const pin = (name, lat, lng) =>
+            L.marker([lat, lng], { title: name })
+                .addTo(map)
+                .bindTooltip(name, { direction: 'top', offset: [0, -8] });
 
-    // 通常の都市ピン
-    pin('札幌', 43.0621, 141.3544);
-    pin('大阪', 34.7025, 135.4959);
-    pin('福岡', 33.5902, 130.4017);
+        // 通常の都市ピン
+        pin('札幌', 43.0621, 141.3544);
+        pin('大阪', 34.7025, 135.4959);
 
-    // ★ 東京：クリックで home.html へ遷移
-    const tokyo = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
-    tokyo.on('click', () => { window.location.href = 'home.html'; });
+        // 東京 → home.html
+        const tokyoMarker = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
+        tokyoMarker.on('click', () => { window.location.href = 'home.html'; });
 
-    // クリック可能であることを見た目で示す（指カーソル）
-    tokyo.on('add', () => {
-      const el = tokyo._icon;
-      if (el) el.style.cursor = 'pointer';
-    });
+        // 福岡 → company.html
+        const fukuokaMarker = pin('福岡（クリックで会社へ）', 33.5902, 130.4017);
+        fukuokaMarker.on('click', () => { window.location.href = 'company.html'; });
 
-    // 将来：通信アニメ線の例（FWブロック等の表現に）
-    // L.polyline([[35.6812,139.7671],[34.7025,135.4959]], { color:'#005CFF', weight:3 }).addTo(map);
+        // クリック可能であることをカーソルで示す
+        function setPointerCursor(m) {
+            m.on('add', () => { if (m._icon) m._icon.style.cursor = 'pointer'; });
+        }
+        setPointerCursor(tokyoMarker);
+        setPointerCursor(fukuokaMarker);
 
-    // もし後からCSSで #map のサイズを変更した場合は、以下を呼ぶと崩れません
-    // map.invalidateSize();
-  </script>
+        // 必要ならサイズ変更後に
+        // map.invalidateSize();
+    </script>
 </body>
 </html>

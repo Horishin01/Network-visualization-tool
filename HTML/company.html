@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <title>会社ネットワーク構成</title>
+    <link rel="stylesheet" href="../CSS/style.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="site-title">ネットワーク学習ツール</h1>
+            <nav class="site-nav">
+                <a href="../index.html">ホーム</a>
+                <a href="training.html">トレーニング</a>
+                <a aria-current="page">社内ネットワーク構成</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container py-24">
+        <h2 class="page-title">会社ネットワーク構成（ベータ）</h2>
+
+        <p class="muted mb-16">
+            ※ このページでは、社内ネットワーク（本社・拠点・サーバ群・FW/ルータ・VLAN 等）を段階的に学べるインタラクティブな構成図を提供します。今後の実装予定：<br>
+            ・拠点追加（福岡本社・東京支社 など）／リンク帯域・遅延の設定<br>
+            ・L3/L2 機器の配置（コアSW・アクセスSW・ルータ・FW）／VLAN/WAN 設定<br>
+            ・社内サーバ（DNS/AD/Proxy/Web）とクライアントの疎通シミュレーション
+        </p>
+
+        <!-- 構成図キャンバス：家庭版と同じ見た目に揃える -->
+        <section class="card p-16">
+            <h3 class="section-title mb-12">社内ネットワーク（ワークスペース）</h3>
+            <div id="corpCanvas" class="canvas" style="height:480px; background:#fff;border:1px solid var(--c-border);border-radius:12px;position:relative;">
+                <!-- ここに後続の会社ネットワーク用JSでノード/リンクを載せていきます -->
+                <div class="muted" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                    構成図エリア（実装予定）
+                </div>
+            </div>
+            <div class="mt-12">
+                <a class="btn" href="training.html">← 日本地図へ戻る</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>© 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
