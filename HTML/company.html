@@ -1,51 +1,119 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8" />
-    <title>会社ネットワーク構成</title>
-    <link rel="stylesheet" href="../CSS/style.css" />
+  <meta charset="UTF-8" />
+  <title>会社ネットワーク構築シミュレータ</title>
+
+  <!-- 共通スタイル -->
+  <link rel="stylesheet" href="../CSS/style.css" />
+  <!-- 家ページと同じ見た目を流用（カード/グリッド/ボタン等） -->
+  <link rel="stylesheet" href="../CSS/home.css" />
 </head>
 <body>
-    <header class="site-header">
-        <div class="container">
-            <h1 class="site-title">ネットワーク学習ツール</h1>
-            <nav class="site-nav">
-                <a href="../index.html">ホーム</a>
-                <a href="training.html">トレーニング</a>
-                <a aria-current="page">社内ネットワーク構成</a>
-            </nav>
+  <!-- 共通ヘッダー -->
+  <header class="site-header">
+    <div class="container header-row">
+      <h1 class="site-title">ネットワーク学習ツール</h1>
+      <nav class="site-nav">
+        <a href="../index.html">ホーム</a>
+        <a href="./training.html">トレーニング</a>
+        <a href="./sub.html">このサイトについて</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="stack-lg">
+      <h2>会社ネットワーク構築シミュレータ</h2>
+      <ul class="lead-list">
+        <li>本社/支店・サーバ群・FW/ルータ・スイッチ（L3/L2）・ONU を用いた社内ネットワーク構成を作成</li>
+        <li>RJ45（有線）/ 光ファイバー（WAN）で拠点・機器を接続して通信経路を学習</li>
+        <li>拠点ごとの詳細編集ページと連携可能（例：福岡支店ページ）</li>
+      </ul>
+    </section>
+
+    <!-- 2カラム：左=キャンバス、右=パレット -->
+    <section class="home-grid">
+      <!-- 左：会社キャンバス（屋根は使わず帯だけ） -->
+      <div class="card home-canvas">
+        <div aria-hidden="true" style="height:56px;border-radius:12px 12px 0 0;
+             background:linear-gradient(90deg,#475569,#0ea5e9);"></div>
+
+        <!-- ステージ（相対基準） -->
+        <div id="corpBody" class="home-stage" tabindex="0" aria-label="会社ネットワーク（ワークスペース）">
+          <!-- 社外WANアンカー（光） -->
+          <button id="wanAnchor" class="home-wan" title="社外WAN（インターネット）">WAN</button>
+
+          <!-- 配線レイヤ（SVG） -->
+          <svg id="cableSvg" class="home-cable-layer" width="100%" height="100%" aria-hidden="true"></svg>
+          <!-- 各機器ノードは JS（company.js）で追加されます -->
         </div>
-    </header>
 
-    <main class="container py-24">
-        <h2 class="page-title">会社ネットワーク構成（ベータ）</h2>
+        <!-- メモ -->
+        <details class="home-note">
+          <summary>構成メモ</summary>
+          <p>例）社内アドレス：<code>192.168.50.0/24</code>、サーバセグメント：<code>192.168.60.0/24</code>。  
+            有線（RJ45）は社内LAN、光ファイバーは WAN/回線収容（ONU 経由）を表します。</p>
+        </details>
+      </div>
 
-        <p class="muted mb-16">
-            ※ このページでは、社内ネットワーク（本社・拠点・サーバ群・FW/ルータ・VLAN 等）を段階的に学べるインタラクティブな構成図を提供します。今後の実装予定：<br>
-            ・拠点追加（福岡本社・東京支社 など）／リンク帯域・遅延の設定<br>
-            ・L3/L2 機器の配置（コアSW・アクセスSW・ルータ・FW）／VLAN/WAN 設定<br>
-            ・社内サーバ（DNS/AD/Proxy/Web）とクライアントの疎通シミュレーション
-        </p>
+      <!-- 右：機器パレット / 設定 -->
+      <aside class="card home-side">
+        <h3 class="card-title">機器パレット（ドラッグ＆ドロップで配置）</h3>
+        <p class="muted">配置後はドラッグで移動。選択して <kbd>Delete</kbd> または「×」で削除できます。</p>
 
-        <!-- 構成図キャンバス：家庭版と同じ見た目に揃える -->
-        <section class="card p-16">
-            <h3 class="section-title mb-12">社内ネットワーク（ワークスペース）</h3>
-            <div id="corpCanvas" class="canvas" style="height:480px; background:#fff;border:1px solid var(--c-border);border-radius:12px;position:relative;">
-                <!-- ここに後続の会社ネットワーク用JSでノード/リンクを載せていきます -->
-                <div class="muted" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                    構成図エリア（実装予定）
-                </div>
-            </div>
-            <div class="mt-12">
-                <a class="btn" href="training.html">← 日本地図へ戻る</a>
-            </div>
-        </section>
-    </main>
+        <div class="home-palette">
+          <!-- ネットワーク機器 -->
+          <button class="palette-item" data-type="router">社内ルータ</button>
+          <button class="palette-item" data-type="firewall">ファイアウォール</button>
+          <button class="palette-item" data-type="coresw">コアSW</button>
+          <button class="palette-item" data-type="accesssw">アクセスSW</button>
+          <button class="palette-item" data-type="onu">ONU</button>
 
-    <footer class="site-footer">
-        <div class="container">
-            <p>© 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
+          <!-- サーバ群 -->
+          <button class="palette-item" data-type="webserver">Webサーバ</button>
+          <button class="palette-item" data-type="dbserver">DBサーバ</button>
+          <button class="palette-item" data-type="dnsserver">DNSサーバ</button>
+          <button class="palette-item" data-type="mailserver">メールサーバ</button>
+          <button class="palette-item" data-type="adserver">AD/認証</button>
+          <button class="palette-item" data-type="proxy">Proxy</button>
+          <button class="palette-item" data-type="fileserver">ファイルサーバ</button>
+          <button class="palette-item" data-type="backup">バックアップ</button>
+          <button class="palette-item" data-type="monitor">監視サーバ</button>
+
+          <!-- クライアント -->
+          <button class="palette-item" data-type="pc">社員PC</button>
+          <button class="palette-item" data-type="printer">プリンタ</button>
+
+          <!-- ケーブルツール -->
+          <button class="palette-item tool" data-tool="rj45">RJ45 ケーブル</button>
+          <button class="palette-item tool" data-tool="fiber">光ファイバー</button>
         </div>
-    </footer>
+
+        <label class="home-toggle">
+          <input id="cableToggle" type="checkbox" />
+          ケーブル接続モード（クリック／ドラッグで配線）
+        </label>
+        <div id="cableStatus" class="badge">接続ステータス: OFF</div>
+
+        <hr />
+
+        <h3 class="card-title">ユーティリティ</h3>
+        <div class="row gap-sm">
+          <button id="powerCycle" class="btn ghost">選択デバイスの再起動（DHCP再取得）</button>
+          <button id="showIPs" class="btn ghost">IP を一覧表示</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <small>© 2025 ネットワーク学習プロジェクト. All Rights Reserved.</small>
+    </div>
+  </footer>
+
+  <!-- 会社用スクリプト（home.js と同等の操作感で会社機器に対応） -->
+  <script src="../JS/company.js" defer></script>
 </body>
 </html>
