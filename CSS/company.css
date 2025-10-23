@@ -1,105 +1,95 @@
-/* ---- レイアウト ---- */
+/* ===== レイアウト ===== */
 .company-grid {
     display: grid;
-    grid-template-columns: 1fr min(360px,32%);
-    gap: 20px;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    align-items: start;
 }
 
-.stage-wrap {
-    position: relative;
+.canvas-card {
     padding: 0;
 }
 
-.office-bar {
-    height: 48px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 14px;
-    color: #fff;
-    background: linear-gradient(180deg,#222,#000);
-    border-radius: 12px 12px 0 0;
-    border-bottom: 1px solid #111;
+.canvas-title {
+    background: #ffffff;
+    color: #1c2333;
+    padding: 10px 14px;
+    font-weight: 700;
+    border: 1px solid #e3e8f0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom: 0;
 }
 
-    .office-bar .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #56d364;
-        display: inline-block
-    }
-
-    .office-bar strong {
-        margin-left: auto;
-        font-weight: 600;
-        opacity: .8
-    }
-
-/* ---- キャンバス ---- */
 .stage {
     position: relative;
-    height: 560px;
-    background: #0b1320;
-    border-radius: 0 0 12px 12px;
-    border: 1px solid #101827;
-    border-top: 0;
+    height: 520px;
+    background: #ffffff;
+    border: 1px solid #e3e8f0;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
     overflow: hidden;
-    user-select: none;
 }
 
-.wan-pill {
-    position: absolute;
-    left: 8px;
-    top: 220px;
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    background: #3162ff;
-    color: #fff;
-    border: 0;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba(0,0,0,.35);
-    cursor: default;
-}
-
-/* Cable layer */
 .cable-layer {
     position: absolute;
     inset: 0;
     pointer-events: none;
 }
 
-.cable {
-    stroke-width: 3;
+.note {
+    padding: 12px;
+    border-top: 1px solid #e3e8f0;
 }
 
-    .cable.rj45 {
-        stroke: #2ecc71;
+/* パレット */
+.side .palette {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.side .pal {
+    padding: 10px 12px;
+    border: 1px solid #cfd4e6;
+    border-radius: 10px;
+    background: #fff;
+}
+
+    .side .pal.tool {
+        background: #eef6ff;
     }
 
-    .cable.fiber {
-        stroke: #ff9800;
-        stroke-dasharray: 8 6;
+    .side .pal.hidden, [data-mode="pro"].hidden {
+        display: none !important;
     }
 
-    .cable.selected {
-        stroke-width: 5;
-        filter: drop-shadow(0 0 6px rgba(255,255,255,.35));
-    }
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
 
-/* ---- ノード ---- */
+.badge {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #eef2f8;
+    display: inline-block;
+}
+
+/* ===== ノード ===== */
 .node {
     position: absolute;
-    min-width: 140px;
-    max-width: 200px;
-    background: #0f1b2e;
-    border: 2px solid #2b4a7e;
-    border-radius: 10px;
-    color: #e5ecff;
-    padding: 10px 12px 8px;
+    user-select: none;
     cursor: grab;
-    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    color: #1a2236;
+    background: #ffffff;
+    border: 2px solid #9bb5d8;
+    border-radius: 10px;
+    min-width: 170px;
+    box-shadow: 0 8px 18px rgba(30,41,59,.08);
 }
 
     .node.dragging {
@@ -108,108 +98,147 @@
 
     .node .title {
         font-weight: 700;
-        margin-bottom: 4px
+        padding: 10px 12px 4px
     }
 
-    .node .small {
-        font-size: .85rem;
-        opacity: .85
+    .node .body {
+        padding: 0 12px 12px;
+        color: #435169;
+        font-size: 13px;
+        line-height: 1.5
     }
 
     .node .close {
         position: absolute;
-        right: 6px;
+        right: 8px;
         top: 6px;
-        border: 0;
-        width: 22px;
-        height: 22px;
-        border-radius: 11px;
+        font-weight: 700;
+        border: none;
+        background: transparent;
+        color: #7b88a8;
         cursor: pointer;
-        background: #0b1220;
-        color: #9fb4ff;
     }
 
-    .node.selected {
-        outline: 2px solid #4f7cff;
-    }
-
+    /* 種別色 */
     .node.onu {
-        border-color: #caa84a
+        border-color: #7fb3ff
     }
 
     .node.router {
-        border-color: #4a9d6f
+        border-color: #35c2a1
     }
 
-/* 置き換え（既存の .port 定義を丸ごと上書き） */
-.port {
+    .node.pc, .node.web, .node.dns, .node.db, .node.mail {
+        border-color: #7a8b9a
+    }
+
+    .node.fw {
+        border-color: #f3aa5a
+    }
+
+/* アンカー */
+.anchor {
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    border: 2px solid #0b1220;
-    background: #999;
+    border: 2px solid #ffffff;
+    background: #10b981; /* LAN 緑 */
+    box-shadow: 0 0 0 1px #0f766e inset;
 }
 
-    .port.wan {
-        background: #ff8a00;
-        left: -6px;
-        top: 50%;
-        transform: translateY(-50%)
+    .anchor.wan {
+        background: #f59e0b;
+        box-shadow: 0 0 0 1px #b45309 inset
+    }
+    /* WAN 橙 */
+    .anchor:hover {
+        transform: scale(1.15)
     }
 
-    .port.lan {
-        background: #2ecc71;
-        right: -6px;
-        top: 50%;
-        transform: translateY(-50%)
-    }
-
-    .port.fiber {
-        background: #ff9800;
-        left: -6px;
-        top: 16px
-    }
-
-/* ---- 右ペイン ---- */
-.side .palette {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px
+/* アンカー位置 */
+.node.onu .anchor.rj {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -6px
 }
 
-.pal {
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid #d8dee9;
+.node.router .anchor.wan {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%)
+}
+
+.node.router .anchor.rj {
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%)
+}
+
+.node.dev .anchor.rj {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%)
+}
+
+/* ケーブル */
+.cable {
+    stroke-width: 3;
+    fill: none
+}
+
+    .cable.rj45 {
+        stroke: #10b981
+    }
+    /* RJ45 緑 */
+    .cable.fiber {
+        stroke: #f59e0b;
+        stroke-dasharray: 6 6
+    }
+    /* 光 橙 破線 */
+    .cable.selected {
+        filter: drop-shadow(0 0 6px rgba(0,0,0,.25))
+    }
+
+/* 光アンカー */
+.fiber-dot {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1b5cff;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    cursor: pointer;
+}
+
+/* 汎用 */
+.hidden {
+    display: none !important
+}
+
+.row {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #cfd4e6;
     background: #fff;
 }
 
-    .pal.tool {
-        background: #f6faff
+    .btn.ghost {
+        background: #f6f8fc
     }
 
-        .pal.tool.tool-active {
-            outline: 2px solid #4a7dff
-        }
-
-.toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px
-}
-
-.badge {
-    margin-top: 8px
-}
-
-.note {
-    margin-top: 10px
-}
-
-/* 細かいUI */
-.row.gap-sm {
-    display: flex;
-    gap: 8px
-}
+    .btn.danger {
+        border-color: #ff9aa2;
+        color: #b01a1a
+    }

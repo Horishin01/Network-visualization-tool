@@ -1,441 +1,414 @@
-/* =========================
-   状態
-========================= */
+/* ===============================
+   会社ネットワーク構築 – 完全版（白基調・従来簡易）
+   =============================== */
+
+// --------- 状態 ---------
 const state = {
-    devices: {},               // id -> {type:'onu'|'router', ipWan, ipLan, flags:{}}
-    connections: [],           // {id, kind:'rj45'|'fiber', a:{id,port}|'wan', b:{id,port}, el}
-    selectedNodeId: null,
-    selectedCableId: null,
-    tool: null,                // 'rj45' | 'fiber'
+    mode: "simple",
+    tool: null,                 // "rj45" | "fiber" | null
     connectMode: false,
-    draggingTemp: null,        // {kind,start, line}
-    uid: 0,
-    cuid: 0
+    nodes: {},                 // id -> {type, el, ipWan, ipLan, flags, ports}
+    connections: [],           // {id, kind:'rj45'|'fiber', a:{id,port}, b:{id,port|null}, el}
+    pools: {
+        wan: { base: "203.0.113.", next: 10 },
+        lan: { base: "10.0.0.", next: 20 }
+    },
+    temp: null
 };
 
-/* =========================
-   DOM
-========================= */
-const $ = q => document.querySelector(q);
-const stage = $("#stage");
+// DOM
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const stage = $("#officeStage");
 const svg = $("#cableSvg");
-const wanAnchor = $("#wanAnchor");
+const fiberDot = $("#fiberAnchor");
+const palBtns = $$(".pal");
 const connectToggle = $("#connectToggle");
 const statusEl = $("#connectStatus");
 
-/* =========================
-   右ペイン：追加/ツール
-========================= */
-document.querySelectorAll(".pal").forEach(btn => {
-    btn.addEventListener("click", () => {
-        const type = btn.dataset.type;
-        const tool = btn.dataset.tool;
-        if (tool) { setTool(tool); return; }
-        spawnNode(type);
-    });
-});
+// --- 表示補助 ---
+function status(txt) { statusEl.textContent = `接続: ${txt}`; }
+function nextIp(pool) { return pool.base + (pool.next++); }
+function byId(id) { return document.getElementById(id); }
 
-connectToggle.addEventListener("change", e => {
-    state.connectMode = e.target.checked;
-    if (!state.connectMode) { setTool(null); status("OFF"); }
-    else { setTool("rj45"); }
+// --- パレット ---
+palBtns.forEach(btn => {
+    const tool = btn.dataset.tool;
+    if (tool) {
+        btn.addEventListener("click", () => {
+            if (!connectToggle.checked) { connectToggle.checked = true; state.connectMode = true; }
+            setTool(tool);
+        });
+    } else {
+        btn.addEventListener("click", () => spawnNode(btn.dataset.type));
+    }
 });
 
 function setTool(tool) {
     state.tool = tool;
-    document.querySelectorAll(".pal.tool").forEach(p => {
-        p.classList.toggle("tool-active", p.dataset.tool === tool);
-    });
-    if (!tool) { status("OFF"); return; }
-    status(tool === "rj45"
-        ? "RJ45：始点ポートを押し → 目的ノードへドラッグ"
-        : "光：左の『光』から ONU(光) へドラッグ");
+    $$(".pal.tool").forEach(b => b.classList.toggle("active", b.dataset.tool === tool));
+    status(tool ? `${tool.toUpperCase()} 選択中` : (state.connectMode ? "ON" : "OFF"));
 }
 
-/* =========================
-   便利表示
-========================= */
-function status(t) { statusEl.textContent = "接続: " + t; }
-$("#showIPs")?.addEventListener("click", () => {
-    const lines = Object.values(state.devices).map(d => {
-        if (d.type === "onu") return `ONU : WAN ${d.flags.wanUp ? d.ipWan : "(未接続)"}`;
-        if (d.type === "router") {
-            const wan = d.flags.wanConnected ? `接続(${d.ipWan})` : "未接続";
-            const lan = d.ipLan || "(未割当)";
-            return `社内ルータ : WAN ${wan} / LAN ${lan}`;
-        }
-        return "";
+// --- モード切替（従来：簡易＝ONU/ルータ/RJ45/光のみ表示） ---
+$("#modeSimple").addEventListener("change", () => setUIMode("simple"));
+$("#modePro").addEventListener("change", () => setUIMode("pro"));
+
+function setUIMode(mode) {
+    state.mode = mode;
+    $$(".palette > *").forEach(el => {
+        const m = el.dataset?.mode || (el.tagName === "HR" ? el.getAttribute("data-mode") : "both");
+        const show = (m === "both") || (m === "pro" && mode === "pro");
+        el.classList.toggle("hidden", !show);
     });
-    alert(lines.join("\n") || "ノードなし");
+}
+
+// --- 接続モード ---
+connectToggle.addEventListener("change", (e) => {
+    state.connectMode = e.target.checked;
+    if (!state.connectMode) { setTool(null); }
+    status(state.connectMode ? (state.tool ? state.tool.toUpperCase() + " 選択中" : "ON") : "OFF");
 });
 
-/* =========================
-   ノード生成
-========================= */
-function nextId(prefix) { return `${prefix}-${++state.uid}`; }
-
+// --- ノード生成 ---
+let uid = 0;
 function spawnNode(type) {
-    const id = nextId(type);
+    const id = `n${++uid}`;
     const el = document.createElement("div");
-    el.className = `node ${type}`;
+    el.className = `node ${type} ${(["pc", "web", "dns", "db", "mail"].includes(type)) ? "dev" : ""}`;
     el.id = id;
-    el.style.left = (220 + Math.random() * 160 | 0) + "px";
-    el.style.top = (140 + Math.random() * 160 | 0) + "px";
 
-    const title = type === "onu" ? "ONU" : "社内ルータ";
+    const titleMap = { onu: "ONU", router: "社内ルータ", pc: "社員PC", web: "Webサーバ", dns: "DNSサーバ", db: "DBサーバ", mail: "Mailサーバ", fw: "Firewall" };
     el.innerHTML = `
     <button class="close" title="削除">×</button>
-    <div class="title">${title}</div>
-    <div class="small" id="${id}-info">未設定</div>
+    <div class="title">${titleMap[type] || type.toUpperCase()}</div>
+    <div class="body"></div>
   `;
-
-    // ポート
-    if (type === "onu") {
-        el.appendChild(makePortEl(id, "fiber", "fiber")); // 光
-        el.appendChild(makePortEl(id, "lan", "wan"));     // RJ45 (橙)
-    } else {
-        el.appendChild(makePortEl(id, "wan", "wan"));     // WAN(橙)
-        el.appendChild(makePortEl(id, "lan", "lan"));     // LAN(緑)
-    }
-
     stage.appendChild(el);
 
-    state.devices[id] = {
-        id, type, ipWan: null, ipLan: null,
-        flags: { wanUp: false, rj45ToOnu: false, wanConnected: false }
+    // 初期位置
+    el.style.left = (140 + Math.random() * 140) + "px";
+    el.style.top = (120 + Math.random() * 120) + "px";
+
+    // アンカー
+    const ports = {};
+    if (type === "onu") {
+        const rj = document.createElement("span");
+        rj.className = "anchor rj"; rj.dataset.port = "rj45";
+        el.appendChild(rj); ports.rj45 = rj;
+    } else if (type === "router") {
+        const wan = document.createElement("span");
+        wan.className = "anchor wan"; wan.dataset.port = "wan";
+        el.appendChild(wan); ports.wan = wan;
+
+        const lan = document.createElement("span");
+        lan.className = "anchor rj"; lan.dataset.port = "lan";
+        el.appendChild(lan); ports.lan = lan;
+    } else {
+        const lan = document.createElement("span");
+        lan.className = "anchor rj"; lan.dataset.port = "lan";
+        el.appendChild(lan); ports.lan = lan;
+    }
+
+    const node = state.nodes[id] = {
+        id, type, el, ports,
+        ipWan: null, ipLan: null,
+        flags: { wanUp: false, wanConnected: false }
     };
 
-    enableDrag(el);
-    el.addEventListener("click", ev => {
-        if (ev.target.classList.contains("close")) return;
-        selectNode(id);
-    });
-    el.querySelector(".close").addEventListener("click", ev => {
-        ev.stopPropagation(); removeNode(id);
-    });
-
-    refreshInfo(id);
-    return el;
+    refreshLabel(node);
+    bindNodeEvents(node);
 }
 
-function makePortEl(id, port, cls) {
-    const p = document.createElement("span");
-    p.className = `port ${cls}`;
-    p.dataset.id = id;
-    p.dataset.port = port;
-
-    // ドラッグ開始
-    p.addEventListener("pointerdown", e => {
-        if (!state.connectMode || !state.tool) return;
-
-        if (state.tool === "rj45") {
-            if (!isRj45StartAllowed(id, port)) return;
-            e.preventDefault();
-            state.draggingTemp = { kind: "rj45", start: { id, port }, line: makeTempLine("rj45") };
-            followPointerDrag(e);
-            status("RJ45：目的ノードへドラッグして離す");
-        } else {
-            status("光は左の『光』から開始してください");
-        }
-    });
-
-    return p;
+function refreshLabel(n) {
+    const b = n.el.querySelector(".body");
+    if (n.type === "onu") {
+        b.innerHTML = n.flags.wanUp ? `WAN接続済み / IP:<br>${n.ipWan}` : `WAN未接続`;
+    } else if (n.type === "router") {
+        const wan = n.flags.wanConnected ? `WAN接続 / IP: ${n.ipWan}` : `WAN未接続`;
+        const lan = n.ipLan ? ` / LAN: ${n.ipLan}` : ` / LAN: 未割当`;
+        b.innerHTML = `${wan}${lan}`;
+    } else {
+        b.textContent = n.ipLan ? `IP: ${n.ipLan}` : `未設定`;
+    }
 }
 
-/* =========================
-   ノードのドラッグ
-========================= */
-function enableDrag(el) {
-    el.addEventListener("pointerdown", e => {
-        if (e.target.classList.contains("port") || e.target.classList.contains("close")) return;
-        e.preventDefault();
-        const rect = stage.getBoundingClientRect();
-        const sx = e.clientX, sy = e.clientY;
-        const ox = parseFloat(el.style.left || 0), oy = parseFloat(el.style.top || 0);
-        el.setPointerCapture(e.pointerId);
-        el.classList.add("dragging");
-        const move = ev => {
-            let nx = ox + (ev.clientX - sx), ny = oy + (ev.clientY - sy);
-            const maxX = rect.width - el.offsetWidth - 4;
-            const maxY = rect.height - el.offsetHeight - 4;
-            nx = Math.max(4, Math.min(maxX, nx));
-            ny = Math.max(4, Math.min(maxY, ny));
-            el.style.left = nx + "px"; el.style.top = ny + "px";
-            updateLinesFor(el.id);
-        };
-        const up = () => {
-            el.classList.remove("dragging");
-            el.releasePointerCapture(e.pointerId);
-            document.removeEventListener("pointermove", move);
-            document.removeEventListener("pointerup", up);
-        };
-        document.addEventListener("pointermove", move);
-        document.addEventListener("pointerup", up);
+function bindNodeEvents(n) {
+    const el = n.el;
+
+    // ドラッグ移動
+    el.addEventListener("pointerdown", (e) => {
+        if (e.target.classList.contains("anchor")) return;
+        if (e.target.classList.contains("close")) return;
+        startDragNode(n, e);
+    });
+
+    // 削除
+    el.querySelector(".close").addEventListener("click", () => removeNode(n.id));
+
+    // アンカー配線
+    Object.values(n.ports).forEach(anchor => {
+        anchor.addEventListener("pointerdown", (e) => {
+            if (!state.connectMode || !state.tool) return;
+            e.stopPropagation();
+            startCableDragFromAnchor(n.id, anchor.dataset.port, e);
+        });
     });
 }
 
-/* =========================
-   ケーブル：ドラッグ（光開始）
-========================= */
-wanAnchor.addEventListener("pointerdown", e => {
-    if (!(state.connectMode && state.tool === "fiber")) return;
-    e.preventDefault();
-    state.draggingTemp = { kind: "fiber", start: "wan", line: makeTempLine("fiber") };
-    followPointerDrag(e);
-    status("光：ONU(光) へドラッグして離す");
-});
+function startDragNode(n, ev) {
+    ev.preventDefault();
+    const el = n.el;
+    el.classList.add("dragging");
+    const rect = stage.getBoundingClientRect();
+    const sx = ev.clientX, sy = ev.clientY;
+    const ox = parseFloat(el.style.left || 0), oy = parseFloat(el.style.top || 0);
 
-/* 共通：ポインタ追従して確定 */
-function followPointerDrag(startEvent) {
-    const move = ev => {
-        const p1 = getAnchorXY(state.draggingTemp.start);
-        const p2 = pointerXY(ev);
-        drawLine(state.draggingTemp.line, p1, p2);
+    const move = (e) => {
+        let nx = ox + (e.clientX - sx);
+        let ny = oy + (e.clientY - sy);
+        nx = Math.max(12, Math.min(nx, rect.width - el.offsetWidth - 12));
+        ny = Math.max(12, Math.min(ny, rect.height - el.offsetHeight - 12));
+        el.style.left = nx + "px"; el.style.top = ny + "px";
+        updateLinesFor(n.id);
     };
-    const up = ev => {
+    const up = () => {
+        el.classList.remove("dragging");
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", up);
-
-        if (!state.draggingTemp) { return; }
-        const kind = state.draggingTemp.kind;
-
-        if (kind === "rj45") {
-            const start = state.draggingTemp.start;
-            const end = resolveRj45DropTarget(ev, start);
-            if (end) { finalizeRJ45(start, end); }
-            else { cancelTemp(); status("RJ45：始点ポートから目的ノードへドラッグ"); }
-        } else {
-            const end = resolveFiberDropTarget(ev);
-            if (end) { finalizeFiber(end); }
-            else { cancelTemp(); status("光：左の『光』→ ONU(光)"); }
-        }
     };
+
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", up, { once: true });
 }
 
-function pointerXY(ev) {
-    const r = stage.getBoundingClientRect();
-    return { x: ev.clientX - r.left, y: ev.clientY - r.top };
-}
-
-function cancelTemp() {
-    if (state.draggingTemp?.line) state.draggingTemp.line.remove();
-    state.draggingTemp = null;
-}
-
-/* ---- ドロップ判定：RJ45 ---- */
-function resolveRj45DropTarget(ev, start) {
-    const hit = document.elementFromPoint(ev.clientX, ev.clientY);
-    const portEl = hit?.closest?.(".port");
-    if (portEl) {
-        const target = { id: portEl.dataset.id, port: portEl.dataset.port };
-        if (isPairRj45(start, target)) return target;
+// --- アンカー座標 ---
+function anchorXY(id, port) {
+    if (id === "fiber") {
+        const r = fiberDot.getBoundingClientRect();
+        const cv = stage.getBoundingClientRect();
+        return { x: r.left - cv.left + r.width / 2, y: r.top - cv.top + r.height / 2 };
     }
-    const nodeEl = hit?.closest?.(".node");
-    if (nodeEl) {
-        const tid = nodeEl.id;
-        const ttype = state.devices[tid]?.type;
-        if (start && state.devices[start.id]) {
-            const stype = state.devices[start.id].type;
-            if (stype === "onu" && start.port === "lan" && ttype === "router") return { id: tid, port: "wan" };
-            if (stype === "router" && start.port === "wan" && ttype === "onu") return { id: tid, port: "lan" };
-        }
-    }
-    return null;
-}
-function finalizeRJ45(a, b) {
-    if (connectionExists("rj45", a, b)) { cancelTemp(); status("RJ45：既に接続済み"); return; }
-    createCable({ kind: "rj45", a, b });
-    cancelTemp();
-    recomputeLinks();
-    status("RJ45：接続完了");
+    const n = state.nodes[id]; if (!n) return null;
+    const ref = port ? n.ports[port] : n.el;
+    if (!ref) return null;
+    const r = ref.getBoundingClientRect();
+    const cv = stage.getBoundingClientRect();
+    return { x: r.left - cv.left + r.width / 2, y: r.top - cv.top + r.height / 2 };
 }
 
-/* ---- ドロップ判定：光 ---- */
-function resolveFiberDropTarget(ev) {
-    const hit = document.elementFromPoint(ev.clientX, ev.clientY);
-    const portEl = hit?.closest?.(".port");
-    if (portEl && state.devices[portEl.dataset.id]?.type === "onu" && portEl.dataset.port === "fiber") {
-        return { id: portEl.dataset.id, port: "fiber" };
-    }
-    const nodeEl = hit?.closest?.(".node");
-    if (nodeEl && state.devices[nodeEl.id]?.type === "onu") { return { id: nodeEl.id, port: "fiber" }; }
-    return null;
-}
-function finalizeFiber(end) {
-    if (connectionExists("fiber", "wan", end)) { cancelTemp(); status("光：既に接続済み"); return; }
-    createCable({ kind: "fiber", a: "wan", b: end });
-    cancelTemp();
-    recomputeLinks();
-    status("光：接続完了");
-}
+// --- ケーブル仮線（RJ45） ---
+function startCableDragFromAnchor(nodeId, port, ev) {
+    const kind = state.tool; if (!kind) return;
 
-function isRj45StartAllowed(id, port) {
-    const t = state.devices[id]?.type;
-    return (t === "onu" && port === "lan") || (t === "router" && port === "wan");
-}
-function isPairRj45(a, b) {
-    const ta = state.devices[a.id]?.type;
-    const tb = state.devices[b.id]?.type;
-    return ta === "onu" && a.port === "lan" && tb === "router" && b.port === "wan";
-}
-
-/* =========================
-   ケーブル生成・更新
-========================= */
-function makeTempLine(kind) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("cable", kind === "fiber" ? "fiber" : "rj45");
     line.style.pointerEvents = "none";
     svg.appendChild(line);
-    const p = { x: 0, y: 0 }; drawLine(line, p, p);
-    return line;
+
+    state.temp = { kind, lineEl: line, start: { id: nodeId, port } };
+
+    const move = (e) => {
+        const p1 = anchorXY(nodeId, port);
+        const cv = stage.getBoundingClientRect();
+        line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+        line.setAttribute("x2", e.clientX - cv.left); line.setAttribute("y2", e.clientY - cv.top);
+    };
+    const up = (e) => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        line.remove(); state.temp = null;
+
+        if (kind === "fiber") { return; } // fiberは左の光からのみ開始
+
+        const elAt = document.elementFromPoint(e.clientX, e.clientY);
+        const anc = elAt?.closest(".anchor");
+        const ne = elAt?.closest(".node");
+        if (anc && ne) {
+            createRj45({ id: nodeId, port }, { id: ne.id, port: anc.dataset.port });
+        } else {
+            status("失敗：RJ45終端が見つかりません");
+        }
+    };
+
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up, { once: true });
 }
-function createCable({ kind, a, b }) {
-    const id = `c${++state.cuid}`;
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    el.classList.add("cable", kind === "fiber" ? "fiber" : "rj45");
-    el.id = id;
-    svg.appendChild(el);
-    const conn = { id, kind, a, b, el };
+
+// --- 光（左の点）からドラッグ ---
+fiberDot.addEventListener("pointerdown", (ev) => {
+    if (!state.connectMode || state.tool !== "fiber") return;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.classList.add("cable", "fiber"); line.style.pointerEvents = "none"; svg.appendChild(line);
+    state.temp = { kind: "fiber", lineEl: line, start: { id: "fiber", port: null } };
+
+    const move = (e) => {
+        const p1 = anchorXY("fiber");
+        const cv = stage.getBoundingClientRect();
+        line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+        line.setAttribute("x2", e.clientX - cv.left); line.setAttribute("y2", e.clientY - cv.top);
+    };
+    const up = (e) => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        line.remove(); state.temp = null;
+
+        const nodeEl = document.elementFromPoint(e.clientX, e.clientY)?.closest(".node");
+        const targetId = nodeEl?.id;
+        if (targetId && state.nodes[targetId]?.type === "onu") {
+            createFiber(targetId);   // ← ONU中心に確定（消えない修正）
+        } else {
+            status("失敗：光はONUにのみ接続可能");
+        }
+    };
+
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up, { once: true });
+});
+
+// --- 接続（確定） ---
+let cid = 0;
+
+function existsConn(a, b, kind) {
+    return state.connections.some(c => {
+        const s = c.kind === kind &&
+            ((c.a.id === a.id && c.a.port === a.port && c.b.id === b.id && c.b.port === b.port) ||
+                (c.a.id === b.id && c.a.port === b.port && c.b.id === a.id && c.b.port === a.port));
+        return s;
+    });
+}
+
+// 光：fiber→ONU（ONUの中心に接続。b.port = null）
+function createFiber(onuId) {
+    const onu = state.nodes[onuId]; if (!onu) { status("失敗：ONUが見つかりません"); return; }
+    if (onu.flags.wanUp) { status("失敗：既に光接続済み"); return; }
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.classList.add("cable", "fiber"); svg.appendChild(line);
+
+    const conn = {
+        id: `c${++cid}`, kind: "fiber",
+        a: { id: "fiber", port: null }, b: { id: onu.id, port: null }, el: line
+    };
     state.connections.push(conn);
-    el.addEventListener("click", ev => { ev.stopPropagation(); selectCable(id); });
     updateLine(conn);
+
+    onu.flags.wanUp = true;
+    onu.ipWan = nextIp(state.pools.wan);
+    refreshLabel(onu);
+    status("光：接続完了");
+}
+
+// RJ45：ONU rj45 ↔ Router WAN、Router LAN ↔ 端末 LAN
+function createRj45(a, b) {
+    const nA = state.nodes[a.id], nB = state.nodes[b.id];
+    if (!nA || !nB) { status("失敗：ノードが不明"); return; }
+
+    // ONU<->Router WAN
+    if ((nA.type === "onu" && a.port === "rj45" && nB.type === "router" && b.port === "wan") ||
+        (nB.type === "onu" && b.port === "rj45" && nA.type === "router" && a.port === "wan")) {
+
+        const router = (nA.type === "router") ? nA : nB;
+        const onu = (nA.type === "onu") ? nA : nB;
+
+        if (!onu.flags.wanUp) { status("失敗：先に光をONUへ接続してください"); return; }
+        if (router.flags.wanConnected) { status("失敗：ルータWANは既に接続済み"); return; }
+        if (existsConn(a, b, "rj45")) { status("失敗：同一RJ45接続が存在"); return; }
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.classList.add("cable", "rj45"); svg.appendChild(line);
+        const conn = { id: `c${++cid}`, kind: "rj45", a, b, el: line };
+        state.connections.push(conn);
+        updateLine(conn);
+
+        router.flags.wanConnected = true;
+        router.ipWan = nextIp(state.pools.wan);
+        refreshLabel(router);
+        status("RJ45：ONU→ルータWAN 接続完了");
+        return;
+    }
+
+    // Router LAN -> 端末 LAN
+    const routerLanToDev =
+        (nA.type === "router" && a.port === "lan" && b.port === "lan" && nB.type !== "onu") ||
+        (nB.type === "router" && b.port === "lan" && a.port === "lan" && nA.type !== "onu");
+
+    if (routerLanToDev) {
+        const dev = (nA.type === "router") ? nB : nA;
+        if (existsConn(a, b, "rj45")) { status("失敗：同一RJ45接続が存在"); return; }
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.classList.add("cable", "rj45"); svg.appendChild(line);
+        const conn = { id: `c${++cid}`, kind: "rj45", a, b, el: line };
+        state.connections.push(conn);
+        updateLine(conn);
+
+        // ルータにLAN IP（初回）
+        const router = (nA.type === "router") ? nA : nB;
+        if (!router.ipLan) { router.ipLan = "10.0.0.1"; refreshLabel(router); }
+        if (!dev.ipLan) { dev.ipLan = nextIp(state.pools.lan); refreshLabel(dev); }
+        status("RJ45：LAN 配下接続完了");
+        return;
+    }
+
+    status("失敗：RJ45の組み合わせが不正です");
+}
+
+// --- ライン更新 ---
+function updateLine(c) {
+    const p1 = anchorXY(c.a.id, c.a.port);
+    const p2 = anchorXY(c.b.id, c.b.port);
+    if (!p1 || !p2) return;
+    c.el.setAttribute("x1", p1.x); c.el.setAttribute("y1", p1.y);
+    c.el.setAttribute("x2", p2.x); c.el.setAttribute("y2", p2.y);
 }
 function updateLinesFor(nodeId) {
-    state.connections.filter(c => c.a?.id === nodeId || c.b?.id === nodeId).forEach(updateLine);
-}
-function updateLine(c) {
-    const p1 = getAnchorXY(c.a);
-    const p2 = getAnchorXY(c.b);
-    drawLine(c.el, p1, p2);
-}
-function drawLine(el, p1, p2) {
-    el.setAttribute("x1", p1.x); el.setAttribute("y1", p1.y);
-    el.setAttribute("x2", p2.x); el.setAttribute("y2", p2.y);
-}
-function getAnchorXY(arg) {
-    const rect = stage.getBoundingClientRect();
-    if (arg === "wan") {
-        const r = wanAnchor.getBoundingClientRect();
-        return { x: r.right - rect.left, y: r.top - rect.top + r.height / 2 };
-    }
-    const { id, port } = arg;
-    const node = document.getElementById(id);
-    const p = node.querySelector(`.port[data-port="${port}"]`);
-    const r = p.getBoundingClientRect();
-    return { x: r.left - rect.left + r.width / 2, y: r.top - rect.top + r.height / 2 };
-}
-
-/* =========================
-   接続の再計算（判定の中枢）
-========================= */
-function recomputeLinks() {
-    // 初期化
-    Object.values(state.devices).forEach(d => {
-        d.flags.wanUp = false;
-        d.flags.rj45ToOnu = false;
-        d.flags.wanConnected = false;
-        if (d.type === "onu") d.ipWan = null;
-        if (d.type === "router") d.ipWan = null;
-    });
-
-    // 接続スキャン
-    const r2o = new Map(); // routerId -> onuId（RJ45）
     state.connections.forEach(c => {
-        if (c.kind === "fiber" && c.b && state.devices[c.b.id]?.type === "onu") {
-            const onu = state.devices[c.b.id];
-            onu.flags.wanUp = true;
-            onu.ipWan = "203.0.113.10";
-        }
-        if (c.kind === "rj45") {
-            const rid = state.devices[c.a.id]?.type === "router" ? c.a.id : c.b.id;
-            const oid = state.devices[c.a.id]?.type === "onu" ? c.a.id : c.b.id;
-            if (rid && oid) { r2o.set(rid, oid); }
-        }
-    });
-
-    // 依存判定（RJ45 + ONUのWANUp で Router WAN接続）
-    r2o.forEach((oid, rid) => {
-        const r = state.devices[rid];
-        const o = state.devices[oid];
-        r.flags.rj45ToOnu = true;
-        if (o?.flags.wanUp) {
-            r.flags.wanConnected = true;
-            r.ipWan = o.ipWan;
-        }
-    });
-
-    // 表示更新
-    Object.keys(state.devices).forEach(refreshInfo);
-}
-
-function connectionExists(kind, a, b) {
-    // 端点の順序を正規化
-    const key = (x) => (x === "wan") ? "wan" : `${x.id}:${x.port}`;
-    const A = key(a), B = key(b);
-    return state.connections.some(c => {
-        if (c.kind !== kind) return false;
-        const cA = key(c.a), cB = key(c.b);
-        return (A === cA && B === cB) || (A === cB && B === cA);
+        if (c.a.id === nodeId || c.b.id === nodeId) updateLine(c);
     });
 }
 
-/* =========================
-   選択/削除
-========================= */
-function selectNode(id) {
-    state.selectedNodeId = id; state.selectedCableId = null;
-    document.querySelectorAll(".node").forEach(n => n.classList.toggle("selected", n.id === id));
-    document.querySelectorAll(".cable").forEach(c => c.classList.remove("selected"));
-}
-function selectCable(id) {
-    state.selectedCableId = id; state.selectedNodeId = null;
-    document.querySelectorAll(".node").forEach(n => n.classList.remove("selected"));
-    document.querySelectorAll(".cable").forEach(c => c.classList.toggle("selected", c.id === id));
+// --- 削除 ---
+function removeNode(id) {
+    const n = state.nodes[id]; if (!n) return;
+    state.connections.slice().forEach(c => {
+        if (c.a.id === id || c.b.id === id) { c.el.remove(); state.connections = state.connections.filter(x => x.id !== c.id); }
+    });
+    n.el.remove(); delete state.nodes[id];
 }
 
-document.addEventListener("keydown", e => {
+// Delete キー（線orノード選択は簡易化：最前面を削除しないため省略）
+document.addEventListener("keydown", (e) => {
     if (e.key === "Delete" || e.key === "Backspace") {
-        if (state.selectedCableId) { removeCable(state.selectedCableId); }
-        else if (state.selectedNodeId) { removeNode(state.selectedNodeId); }
+        // 直近の接続を削除（簡易）
+        const last = state.connections.pop();
+        if (last) { last.el.remove(); status("ケーブル削除"); }
     }
 });
 
-function removeCable(id) {
-    const i = state.connections.findIndex(c => c.id === id);
-    if (i < 0) return;
-    state.connections[i].el.remove();
-    state.connections.splice(i, 1);
-    state.selectedCableId = null;
-    recomputeLinks();
-}
+// --- ユーティリティ ---
+$("#btnShowIp").addEventListener("click", () => {
+    const lines = Object.values(state.nodes).map(n => {
+        if (n.type === "onu") return `ONU : ${n.flags.wanUp ? `WAN ${n.ipWan}` : "WAN未接続"}`;
+        if (n.type === "router") return `社内ルータ : ${n.flags.wanConnected ? `WAN ${n.ipWan}` : "WAN未接続"} / LAN ${n.ipLan || "未割当"}`;
+        return `${n.el.querySelector(".title").textContent} : ${n.ipLan || "未設定"}`;
+    });
+    alert(lines.join("\n") || "ノードなし");
+});
 
-function removeNode(id) {
-    state.connections.filter(c => c.a?.id === id || c.b?.id === id).map(c => c.id).forEach(removeCable);
-    document.getElementById(id)?.remove();
-    delete state.devices[id];
-    state.selectedNodeId = null;
-    recomputeLinks();
-}
+$("#btnReset").addEventListener("click", () => {
+    state.connections.forEach(c => c.el.remove());
+    state.connections = [];
+    Object.values(state.nodes).forEach(n => n.el.remove());
+    state.nodes = {};
+    state.pools.wan.next = 10; state.pools.lan.next = 20;
+    setTool(null); connectToggle.checked = false; state.connectMode = false; status("OFF");
+});
 
-/* =========================
-   ラベル更新
-========================= */
-function refreshInfo(id) {
-    const d = state.devices[id]; if (!d) return;
-    const info = document.getElementById(`${id}-info`);
-    if (d.type === "onu") {
-        info.textContent = d.flags.wanUp ? `WAN接続済み / IP: ${d.ipWan}` : "WAN未接続";
-    } else if (d.type === "router") {
-        const wan = d.flags.wanConnected ? `WAN接続 / IP: ${d.ipWan}` : "WAN未接続";
-        const lan = d.ipLan ? `LAN: ${d.ipLan}` : "LAN: 未割当";
-        info.textContent = `${wan} / ${lan}`;
-    }
-}
-
-/* =========================
-   初期
-========================= */
-status("OFF");
+// --- 起動：従来の簡易で開始 ---
+(function boot() {
+    setUIMode("simple");           // 簡易（従来）
+    setTool(null);
+    connectToggle.checked = false; state.connectMode = false; status("OFF");
+})();
