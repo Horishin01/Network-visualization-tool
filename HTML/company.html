@@ -1,119 +1,88 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>会社ネットワーク構築シミュレータ</title>
-
-  <!-- 共通スタイル -->
-  <link rel="stylesheet" href="../CSS/style.css" />
-  <!-- 家ページと同じ見た目を流用（カード/グリッド/ボタン等） -->
-  <link rel="stylesheet" href="../CSS/home.css" />
+    <meta charset="UTF-8" />
+    <title>会社ネットワーク構築（ベータ）</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- 既存の共通スタイル（見た目） -->
+    <link rel="stylesheet" href="../CSS/style.css" />
+    <!-- このページ専用 -->
+    <link rel="stylesheet" href="../CSS/company.css" />
 </head>
 <body>
-  <!-- 共通ヘッダー -->
-  <header class="site-header">
-    <div class="container header-row">
-      <h1 class="site-title">ネットワーク学習ツール</h1>
-      <nav class="site-nav">
-        <a href="../index.html">ホーム</a>
-        <a href="./training.html">トレーニング</a>
-        <a href="./sub.html">このサイトについて</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="stack-lg">
-      <h2>会社ネットワーク構築シミュレータ</h2>
-      <ul class="lead-list">
-        <li>本社/支店・サーバ群・FW/ルータ・スイッチ（L3/L2）・ONU を用いた社内ネットワーク構成を作成</li>
-        <li>RJ45（有線）/ 光ファイバー（WAN）で拠点・機器を接続して通信経路を学習</li>
-        <li>拠点ごとの詳細編集ページと連携可能（例：福岡支店ページ）</li>
-      </ul>
-    </section>
-
-    <!-- 2カラム：左=キャンバス、右=パレット -->
-    <section class="home-grid">
-      <!-- 左：会社キャンバス（屋根は使わず帯だけ） -->
-      <div class="card home-canvas">
-        <div aria-hidden="true" style="height:56px;border-radius:12px 12px 0 0;
-             background:linear-gradient(90deg,#475569,#0ea5e9);"></div>
-
-        <!-- ステージ（相対基準） -->
-        <div id="corpBody" class="home-stage" tabindex="0" aria-label="会社ネットワーク（ワークスペース）">
-          <!-- 社外WANアンカー（光） -->
-          <button id="wanAnchor" class="home-wan" title="社外WAN（インターネット）">WAN</button>
-
-          <!-- 配線レイヤ（SVG） -->
-          <svg id="cableSvg" class="home-cable-layer" width="100%" height="100%" aria-hidden="true"></svg>
-          <!-- 各機器ノードは JS（company.js）で追加されます -->
+    <header class="site-header">
+        <div class="container header-row">
+            <h1 class="site-title">ネットワーク学習ツール</h1>
+            <nav class="site-nav">
+                <a href="../index.html">ホーム</a>
+                <a href="./training.html">トレーニング</a>
+                <a href="./sub.html">このサイトについて</a>
+            </nav>
         </div>
+    </header>
 
-        <!-- メモ -->
-        <details class="home-note">
-          <summary>構成メモ</summary>
-          <p>例）社内アドレス：<code>192.168.50.0/24</code>、サーバセグメント：<code>192.168.60.0/24</code>。  
-            有線（RJ45）は社内LAN、光ファイバーは WAN/回線収容（ONU 経由）を表します。</p>
-        </details>
-      </div>
+    <main class="container">
+        <section class="stack-lg">
+            <h2>会社ネットワーク構築（ベータ）</h2>
+            <ul class="lead-list">
+                <li>パレットからノード追加、ドラッグで移動、<b>RJ45／光</b>で配線できます。</li>
+                <li>簡易モード：<b>ONU・社内ルータ・RJ45・光</b>（最小構成）</li>
+            </ul>
+        </section>
 
-      <!-- 右：機器パレット / 設定 -->
-      <aside class="card home-side">
-        <h3 class="card-title">機器パレット（ドラッグ＆ドロップで配置）</h3>
-        <p class="muted">配置後はドラッグで移動。選択して <kbd>Delete</kbd> または「×」で削除できます。</p>
+        <section class="company-grid">
+            <!-- 左：キャンバス -->
+            <div class="card stage-wrap">
+                <div class="office-bar" aria-hidden="true">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <strong>Office Network Floor</strong>
+                </div>
 
-        <div class="home-palette">
-          <!-- ネットワーク機器 -->
-          <button class="palette-item" data-type="router">社内ルータ</button>
-          <button class="palette-item" data-type="firewall">ファイアウォール</button>
-          <button class="palette-item" data-type="coresw">コアSW</button>
-          <button class="palette-item" data-type="accesssw">アクセスSW</button>
-          <button class="palette-item" data-type="onu">ONU</button>
+                <div id="stage" class="stage" tabindex="0" aria-label="会社ネットワーク構成図">
+                    <!-- 左端：光アンカー（WAN側） -->
+                    <button id="wanAnchor" class="wan-pill" title="社外WAN（光）">光</button>
 
-          <!-- サーバ群 -->
-          <button class="palette-item" data-type="webserver">Webサーバ</button>
-          <button class="palette-item" data-type="dbserver">DBサーバ</button>
-          <button class="palette-item" data-type="dnsserver">DNSサーバ</button>
-          <button class="palette-item" data-type="mailserver">メールサーバ</button>
-          <button class="palette-item" data-type="adserver">AD/認証</button>
-          <button class="palette-item" data-type="proxy">Proxy</button>
-          <button class="palette-item" data-type="fileserver">ファイルサーバ</button>
-          <button class="palette-item" data-type="backup">バックアップ</button>
-          <button class="palette-item" data-type="monitor">監視サーバ</button>
+                    <!-- Cable layer -->
+                    <svg id="cableSvg" class="cable-layer" width="100%" height="100%" aria-hidden="true"></svg>
+                </div>
 
-          <!-- クライアント -->
-          <button class="palette-item" data-type="pc">社員PC</button>
-          <button class="palette-item" data-type="printer">プリンタ</button>
+                <details class="note">
+                    <summary>メモ</summary>
+                    <p>光が ONU に入るまで ONU の WAN IP は未割当。ONU に光が入ると <code>203.0.113.10</code> を表示します。RJ45 で ONU の LAN とルータの WAN を結線できます。</p>
+                </details>
+            </div>
 
-          <!-- ケーブルツール -->
-          <button class="palette-item tool" data-tool="rj45">RJ45 ケーブル</button>
-          <button class="palette-item tool" data-tool="fiber">光ファイバー</button>
-        </div>
+            <!-- 右：パレット -->
+            <aside class="card side">
+                <h3 class="card-title">パレット</h3>
+                <p class="muted">クリックで追加、キャンバス上でドラッグ移動。選択して <kbd>Delete</kbd> で削除。</p>
 
-        <label class="home-toggle">
-          <input id="cableToggle" type="checkbox" />
-          ケーブル接続モード（クリック／ドラッグで配線）
-        </label>
-        <div id="cableStatus" class="badge">接続ステータス: OFF</div>
+                <div class="palette">
+                    <button class="pal" data-type="onu">ONU</button>
+                    <button class="pal" data-type="router">社内ルータ</button>
+                    <button class="pal tool" data-tool="rj45">RJ45 ケーブル</button>
+                    <button class="pal tool" data-tool="fiber">光ファイバー</button>
+                </div>
 
-        <hr />
+                <label class="toggle">
+                    <input id="connectToggle" type="checkbox" />
+                    ケーブル接続モード（クリック／ドラッグで配線）
+                </label>
+                <div id="connectStatus" class="badge">接続: OFF</div>
 
-        <h3 class="card-title">ユーティリティ</h3>
-        <div class="row gap-sm">
-          <button id="powerCycle" class="btn ghost">選択デバイスの再起動（DHCP再取得）</button>
-          <button id="showIPs" class="btn ghost">IP を一覧表示</button>
-        </div>
-      </aside>
-    </section>
-  </main>
+                <hr />
+                <h3 class="card-title">ユーティリティ</h3>
+                <div class="row gap-sm">
+                    <button id="showIPs" class="btn ghost">IP 一覧</button>
+                </div>
+            </aside>
+        </section>
+    </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <small>© 2025 ネットワーク学習プロジェクト. All Rights Reserved.</small>
-    </div>
-  </footer>
+    <footer class="site-footer">
+        <div class="container"><small>© 2025 ネットワーク学習プロジェクト</small></div>
+    </footer>
 
-  <!-- 会社用スクリプト（home.js と同等の操作感で会社機器に対応） -->
-  <script src="../JS/company.js" defer></script>
+    <script src="../JS/company.js" defer></script>
 </body>
 </html>

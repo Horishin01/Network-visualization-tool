@@ -1,145 +1,215 @@
-@charset "UTF-8";
-/* ÉåÉCÉÑèáÇ∆ç≈è¨ÉåÉCÉAÉEÉgÇÃà¿íËâª */
-.home-stage {
-    position: relative;
-    min-height: 540px
+/* ---- „É¨„Ç§„Ç¢„Ç¶„Éà ---- */
+.company-grid {
+    display: grid;
+    grid-template-columns: 1fr min(360px,32%);
+    gap: 20px;
 }
 
-#cableSvg.home-cable-layer {
+.stage-wrap {
+    position: relative;
+    padding: 0;
+}
+
+.office-bar {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    color: #fff;
+    background: linear-gradient(180deg,#222,#000);
+    border-radius: 12px 12px 0 0;
+    border-bottom: 1px solid #111;
+}
+
+    .office-bar .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #56d364;
+        display: inline-block
+    }
+
+    .office-bar strong {
+        margin-left: auto;
+        font-weight: 600;
+        opacity: .8
+    }
+
+/* ---- „Ç≠„É£„É≥„Éê„Çπ ---- */
+.stage {
+    position: relative;
+    height: 560px;
+    background: #0b1320;
+    border-radius: 0 0 12px 12px;
+    border: 1px solid #101827;
+    border-top: 0;
+    overflow: hidden;
+    user-select: none;
+}
+
+.wan-pill {
+    position: absolute;
+    left: 8px;
+    top: 220px;
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    background: #3162ff;
+    color: #fff;
+    border: 0;
+    font-weight: 700;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+    cursor: default;
+}
+
+/* Cable layer */
+.cable-layer {
     position: absolute;
     inset: 0;
-    z-index: 1;
-    pointer-events: none
+    pointer-events: none;
 }
 
-.device, .router, .switch, .onu, .server, .printer {
+.cable {
+    stroke-width: 3;
+}
+
+    .cable.rj45 {
+        stroke: #2ecc71;
+    }
+
+    .cable.fiber {
+        stroke: #ff9800;
+        stroke-dasharray: 8 6;
+    }
+
+    .cable.selected {
+        stroke-width: 5;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,.35));
+    }
+
+/* ---- „Éé„Éº„Éâ ---- */
+.node {
     position: absolute;
-    z-index: 2;
-    user-select: none;
-    cursor: grab
+    min-width: 140px;
+    max-width: 200px;
+    background: #0f1b2e;
+    border: 2px solid #2b4a7e;
+    border-radius: 10px;
+    color: #e5ecff;
+    padding: 10px 12px 8px;
+    cursor: grab;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
 }
 
-    .device:active, .router:active, .switch:active, .onu:active, .server:active {
+    .node.dragging {
         cursor: grabbing
     }
 
-.office-roof {
-    position: absolute;
-    left: 12px;
-    right: 12px;
-    top: -10px;
-    height: 20px;
-    background: linear-gradient(90deg,#334155,#0f172a);
-    border-radius: 10px 10px 0 0
-}
-
-
-/* ÉmÅ[ÉhÇÃäOäœ */
-.box {
-    min-width: 120px;
-    max-width: 180px;
-    padding: .4rem .5rem .6rem;
-    border: 1px solid var(--c-border,#cbd5e1);
-    border-radius: .6rem;
-    background: #fff;
-    box-shadow: 0 4px 14px rgba(0,0,0,.12)
-}
-
-    .box .title {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: .25rem
+    .node .title {
+        font-weight: 700;
+        margin-bottom: 4px
     }
 
-        .box .title b {
-            font-size: 13px
+    .node .small {
+        font-size: .85rem;
+        opacity: .85
+    }
+
+    .node .close {
+        position: absolute;
+        right: 6px;
+        top: 6px;
+        border: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        cursor: pointer;
+        background: #0b1220;
+        color: #9fb4ff;
+    }
+
+    .node.selected {
+        outline: 2px solid #4f7cff;
+    }
+
+    .node.onu {
+        border-color: #caa84a
+    }
+
+    .node.router {
+        border-color: #4a9d6f
+    }
+
+/* ÁΩÆ„ÅçÊèõ„ÅàÔºàÊó¢Â≠ò„ÅÆ .port ÂÆöÁæ©„Çí‰∏∏„Åî„Å®‰∏äÊõ∏„ÅçÔºâ */
+.port {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #0b1220;
+    background: #999;
+}
+
+    .port.wan {
+        background: #ff8a00;
+        left: -6px;
+        top: 50%;
+        transform: translateY(-50%)
+    }
+
+    .port.lan {
+        background: #2ecc71;
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%)
+    }
+
+    .port.fiber {
+        background: #ff9800;
+        left: -6px;
+        top: 16px
+    }
+
+/* ---- Âè≥„Éö„Ç§„É≥ ---- */
+.side .palette {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px
+}
+
+.pal {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #d8dee9;
+    background: #fff;
+}
+
+    .pal.tool {
+        background: #f6faff
+    }
+
+        .pal.tool.tool-active {
+            outline: 2px solid #4a7dff
         }
 
-    .box .type {
-        font-size: 11px;
-        color: #6b7280
-    }
-
-    .box .ports {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .25rem;
-        margin-top: .35rem
-    }
-
-    .box .port {
-        font-size: 11px;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: .35rem;
-        padding: .1rem .35rem;
-        color: #0f172a
-    }
+.toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px
+}
 
 .badge {
-    font-size: 10px;
-    border: 1px solid #e2e8f0;
-    padding: .05rem .35rem;
-    border-radius: .35rem;
-    color: #475569;
-    background: #f8fafc
+    margin-top: 8px
 }
 
-.selected {
-    outline: 2px solid #60a5fa
+.note {
+    margin-top: 10px
 }
 
-
-/* ÉPÅ[ÉuÉãêF */
-.cable.rj45 {
-    stroke: #2563eb;
-    stroke-width: 2.5
-}
-
-.cable.fiber {
-    stroke: #f59e0b;
-    stroke-width: 2.5;
-    stroke-dasharray: 6 4
-}
-
-.cable.selected {
-    stroke-width: 3.5
-}
-
-
-/* ÉZÉOÉÅÉìÉgàÍóó */
-.seg-list {
+/* Á¥∞„Åã„ÅÑUI */
+.row.gap-sm {
     display: flex;
-    flex-wrap: wrap;
     gap: 8px
-}
-
-.seg-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid var(--c-border,#e2e8f0);
-    border-radius: 999px;
-    padding: 4px 10px;
-    background: #fff
-}
-
-.seg-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block
-}
-
-.seg-name {
-    font-size: .9rem
-}
-
-
-/* WANÉAÉìÉJÅ[éãîFê´ */
-.home-wan {
-    position: absolute;
-    left: 8px;
-    top: 8px
 }
