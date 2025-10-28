@@ -1,41 +1,130 @@
-﻿<!DOCTYPE html>
+﻿```html
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>ネットワーク学習ツール</title>
+    <meta charset="UTF-8" />
+    <title>ネットワーク学習ツール</title>
 
-  <!-- 既存CSS -->
-  <link rel="stylesheet" href="../CSS/style.css" />
-  <link rel="stylesheet" href="../CSS/map.css" />
+    <!-- 既存CSS -->
+    <link rel="stylesheet" href="../CSS/style.css" />
+    <link rel="stylesheet" href="../CSS/map.css" />
 
-  <!-- Leaflet（地図用） -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+    <!-- Leaflet（地図用） -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
 
-  <!-- このページだけで完結させるための最小CSS（map.cssがなくても動く） -->
-  <style>
-    :root { --map-border:#c5ccd6; --map-bg:#f7f9fc; }
-    .page-wrap  { max-width:1200px; margin:0 auto; padding:24px; }
-    header,footer{ max-width:1200px; margin:0 auto; }
-    nav ul { list-style:none; padding:0; display:flex; gap:16px; }
-    nav a  { text-decoration:none; color:#1a1a1a; }
+    <!-- このページだけの最小CSS（正方形地図＋プレビュー） -->
+    <style>
+        :root {
+            --map-border: #c5ccd6;
+            --map-bg: #f7f9fc;
+            --card-border: #e3e8f0;
+            --card-bg: #fff;
+        }
 
-    /* 固定サイズの地図コンテナ（1200×520）。狭い画面は横スクロールで崩さない */
-    .map-wrap      { display:flex; justify-content:center; margin-block:16px; overflow-x:auto; }
-    .map-wrap.fixed #map {
-      width:1200px;           /* ← 必要に応じて変更 */
-      height:520px;           /* ← 必要に応じて変更 */
-      border:1px solid var(--map-border);
-      border-radius:12px;
-      background:var(--map-bg);
-    }
-    /* Leaflet 背景色を角丸に合わせる（視覚的ノイズ低減） */
-    .leaflet-container { background:var(--map-bg); }
-  </style>
+        .page-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        header, footer {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            gap: 16px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #1a1a1a;
+        }
+
+        /* 2カラム：左=地図（正方形）/ 右=操作画面プレビュー */
+        .grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: 1fr 420px;
+            align-items: start;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+        }
+
+        .card-head {
+            padding: 10px 14px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-body {
+            padding: 12px;
+        }
+
+        /* 正方形の地図 */
+        #map {
+            width: 100%;
+            aspect-ratio: 1 / 1; /* ← 常に正方形 */
+            border: 1px solid var(--map-border);
+            border-radius: 12px;
+            background: var(--map-bg);
+        }
+
+        .leaflet-container {
+            background: var(--map-bg);
+        }
+
+        /* プレビュー */
+        .preview-col {
+            display: grid;
+            gap: 12px;
+        }
+
+        .preview-iframe {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            border: 0;
+            display: block;
+            pointer-events: none; /* 触れないミニプレビュー */
+            background: #fff;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: 1px solid var(--card-border);
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+            .btn.primary {
+                background: #1b5cff;
+                color: #fff;
+                border-color: #1b5cff;
+            }
+
+        .note {
+            font-size: 12px;
+            color: #5b6477;
+            padding-top: 8px;
+        }
+    </style>
 </head>
 <body>
 
@@ -54,17 +143,46 @@
     <!-- ▼ メインコンテンツ -->
     <main class="page-wrap">
         <section class="main-section">
-            <h2>日本地図（インタラクティブ）</h2>
+            <h2>日本地図（インタラクティブ）＋ 操作画面プレビュー</h2>
 
-            <!-- 固定サイズ地図。スマホ等で小さい場合は横スクロールで表示 -->
-            <div class="map-wrap fixed">
-                <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
+            <div class="grid">
+                <!-- 左：日本地図（正方形） -->
+                <div class="card">
+                    <div class="card-head">日本地図（クリックでページ遷移）</div>
+                    <div class="card-body">
+                        <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
+                        <p class="note">東京＝自宅Wi-Fi、福岡＝会社ネットワーク。地図は常に正方形で表示します。</p>
+                    </div>
+                </div>
+
+                <!-- 右：操作画面プレビュー -->
+                <aside class="preview-col">
+                    <div class="card">
+                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <span>自宅 Wi-Fi 構築シミュレータ</span>
+                            <a class="btn primary" href="./home.html">開く</a>
+                        </div>
+                        <div class="card-body">
+                            <iframe class="preview-iframe" src="./home.html" loading="lazy" title="home preview"></iframe>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <span>会社ネットワーク構築（ベータ）</span>
+                            <a class="btn primary" href="./company.html">開く</a>
+                        </div>
+                        <div class="card-body">
+                            <iframe class="preview-iframe" src="./company.html" loading="lazy" title="company preview"></iframe>
+                        </div>
+                    </div>
+                </aside>
             </div>
 
             <!-- JavaScript無効時の静的フォールバック（任意） -->
             <noscript>
                 <p>JavaScript が無効のため静的地図を表示します。</p>
-                <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="900" />
+                <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="600" height="600" />
             </noscript>
         </section>
     </main>
@@ -114,7 +232,7 @@
 
         // 福岡 → company.html
         const fukuokaMarker = pin('福岡（クリックで会社へ）', 33.5902, 130.4017);
-        fukuokaMarker.on('click', () => { window.location.href = 'fukuoka.html'; });
+        fukuokaMarker.on('click', () => { window.location.href = 'company.html'; });
 
         // クリック可能であることをカーソルで示す
         function setPointerCursor(m) {
@@ -123,8 +241,9 @@
         setPointerCursor(tokyoMarker);
         setPointerCursor(fukuokaMarker);
 
-        // 必要ならサイズ変更後に
-        // map.invalidateSize();
+        // レイアウト確定後とリサイズ時に再計算（正方形でもLeafletを正しく描画）
+        window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
+        window.addEventListener('resize', () => map.invalidateSize());
     </script>
 </body>
 </html>
