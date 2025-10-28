@@ -1,53 +1,109 @@
-/* ===========================
-   Map Styles (Leaflet / OSM)
-   =========================== */
+<!--このページだけの最小CSS（正方形地図＋プレビュー） -->
 
 :root {
-  --map-border: #c5ccd6;
-  --map-bg: #f7f9fc;
-  --radius: 12px;
+    --map-border: #c5ccd6;
+    --map-bg: #f7f9fc;
+    --card-border: #e3e8f0;
+    --card-bg: #fff;
 }
 
-/* 外枠：中央寄せ & 余白 */
-.map-wrap {
-  display: flex;
-  justify-content: center;
-  margin-block: 16px;
+.page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
 }
 
-/* 完全固定サイズ（推奨 1200x520） */
-.map-wrap.fixed #map {
-  width: 1200px;   /* ← 好みで変更OK */
-  height: 520px;   /* ← 好みで変更OK */
-  border: 1px solid var(--map-border);
-  border-radius: var(--radius);
-  background: var(--map-bg);
+header, footer {
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-/* 画面が狭い場合ははみ出す可能性があるため任意で横スクロール許可 */
-.map-wrap.fixed {
-  overflow-x: auto;
+nav ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 16px;
 }
 
-/* 横スクロール派：PCでは固定、スマホ等はスクロールで崩さない */
-.map-wrap.scroll {
-  overflow-x: auto;
-  padding-bottom: 8px; /* スクロールバー分の余白 */
-}
-.map-wrap.scroll #map {
-  width: 1200px;               /* 固定したい基準サイズ */
-  height: 520px;
-  border: 1px solid var(--map-border);
-  border-radius: var(--radius);
-  background: var(--map-bg);
+nav a {
+    text-decoration: none;
+    color: #1a1a1a;
 }
 
-/* Leafletのコントロールも角丸に合わせて少しだけ整える（任意） */
-.leaflet-control-zoom a {
-  border-radius: 8px !important;
+/* 2カラム：左=地図（正方形）/ 右=操作画面プレビュー */
+.grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr 420px;
+    align-items: start;
 }
 
-/* 角丸の見た目を保つため、タイルの下地色も合わせる（任意） */
+@media (max-width: 980px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+}
+
+.card-head {
+    padding: 10px 14px;
+    font-weight: 700;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.card-body {
+    padding: 12px;
+}
+
+/* 正方形の地図 */
+#map {
+    width: 100%;
+    aspect-ratio: 1 / 1; /* ← 常に正方形 */
+    border: 1px solid var(--map-border);
+    border-radius: 12px;
+    background: var(--map-bg);
+}
+
 .leaflet-container {
-  background: var(--map-bg);
+    background: var(--map-bg);
+}
+
+/* プレビュー */
+.preview-col {
+    display: grid;
+    gap: 12px;
+}
+
+.preview-iframe {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border: 0;
+    display: block;
+    pointer-events: none; /* 触れないミニプレビュー */
+    background: #fff;
+}
+
+.btn {
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+    .btn.primary {
+        background: #1b5cff;
+        color: #fff;
+        border-color: #1b5cff;
+    }
+
+.note {
+    font-size: 12px;
+    color: #5b6477;
+    padding-top: 8px;
 }
