@@ -1,0 +1,9 @@
+ストレージ保存方法
+セッションストレージ・ローカルストレージ
+
+ex)
+  let right-onu = 'yes';
+  let onu-ruter = 'no';
+  window.localStorage.setItem(key, val);
+
+上記の保存方法をJSONで保存規則を決めて保存する
