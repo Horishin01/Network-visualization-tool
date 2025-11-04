@@ -1,4 +1,4 @@
-<!--このページだけの最小CSS（正方形地図＋プレビュー） -->
+/* このページだけの最小CSS（正方形地図＋プレビュー） */
 
 :root {
     --map-border: #c5ccd6;
@@ -7,6 +7,7 @@
     --card-bg: #fff;
 }
 
+/* 外枠 */
 .page-wrap {
     max-width: 1200px;
     margin: 0 auto;
@@ -63,12 +64,13 @@ nav a {
 /* 正方形の地図 */
 #map {
     width: 100%;
-    aspect-ratio: 1 / 1; /* ← 常に正方形 */
+    aspect-ratio: 1 / 1; /* 常に正方形 */
     border: 1px solid var(--map-border);
     border-radius: 12px;
     background: var(--map-bg);
 }
 
+/* Leafletの下地色を角丸に揃える */
 .leaflet-container {
     background: var(--map-bg);
 }
@@ -88,6 +90,7 @@ nav a {
     background: #fff;
 }
 
+/* ボタン */
 .btn {
     padding: 8px 12px;
     border: 1px solid var(--card-border);
@@ -107,3 +110,41 @@ nav a {
     color: #5b6477;
     padding-top: 8px;
 }
+
+/* 追加：保存状態ビューア用 */
+.dump {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    background: #f8fafc;
+    color: #0f172a;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    height: 200px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* 追加：軽いトースト通知 */
+.toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    max-width: 420px;
+    background: #111827;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(8px);
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 9999;
+}
+
+    .toast.on {
+        opacity: 1;
+        transform: translateY(0);
+    }

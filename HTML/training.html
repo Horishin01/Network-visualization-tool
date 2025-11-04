@@ -2,359 +2,114 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
-    <title>ネットワーク学習ツール | 日本地図（簡易）</title>
+    <title>ネットワーク学習ツール</title>
 
-    <!-- Leaflet -->
+    <!-- 既存CSS -->
+    <link rel="stylesheet" href="../CSS/style.css" />
+    <link rel="stylesheet" href="../CSS/map.css" />
+
+    <!-- Leaflet（地図用） -->
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <style>
-        /* ====== レイアウト & 共通 ====== */
-        :root {
-            --map-border: #c5ccd6;
-            --map-bg: #f7f9fc;
-            --card: #fff;
-            --line: #e5eaf2;
-            --muted: #6b7381;
-            --accent: #1b5cff;
-            --ok: #22c55e;
-            --warn: #f59e0b;
-            --toast: #111827;
-            --radius: 12px;
-        }
-
-        * {
-            box-sizing: border-box
-        }
-
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-            color: #111
-        }
-
-        header, footer {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px
-        }
-
-        h1 {
-            margin: 0 0 4px 0;
-            font-size: 22px
-        }
-
-        small.sub {
-            color: var(--muted)
-        }
-
-        a {
-            color: #0b63ff;
-            text-decoration: none
-        }
-
-        .page {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 420px;
-            gap: 16px;
-            align-items: start
-        }
-
-        @media (max-width:980px) {
-            .grid {
-                grid-template-columns: 1fr
-            }
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            overflow: hidden
-        }
-
-        .card-head {
-            padding: 10px 14px;
-            font-weight: 700;
-            border-bottom: 1px solid var(--line)
-        }
-
-        .card-body {
-            padding: 12px
-        }
-
-        .mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace
-        }
-
-        .btn {
-            padding: 8px 12px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #fff;
-            cursor: pointer
-        }
-
-            .btn.primary {
-                background: var(--accent);
-                color: #fff;
-                border-color: var(--accent)
-            }
-
-            .btn.warn {
-                background: #fff3;
-                border-color: #fca5a5;
-                color: #b91c1c
-            }
-
-        .row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap
-        }
-
-        /* ====== 正方形地図 ====== */
-        #map {
-            width: 100%;
-            aspect-ratio: 1/1;
-            border: 1px solid var(--map-border);
-            border-radius: var(--radius);
-            background: var(--map-bg)
-        }
-
-        .leaflet-container {
-            background: var(--map-bg)
-        }
-        /* ✅/⚠ バッジ */
-        .badge-flag {
-            background: #fff;
-            border: 1px solid var(--line);
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.08)
-        }
-
-            .badge-flag.ok {
-                color: #065f46;
-                border-color: #a7f3d0;
-                background: #ecfdf5
-            }
-
-            .badge-flag.ng {
-                color: #7c2d12;
-                border-color: #fed7aa;
-                background: #fff7ed
-            }
-
-        /* ====== プレビュー iframe（触れない） ====== */
-        .preview iframe {
-            width: 100%;
-            aspect-ratio: 16/10;
-            border: 0;
-            display: block;
-            pointer-events: none;
-            background: #fff;
-            border: 1px solid var(--line);
-            border-radius: 8px
-        }
-
-        /* ====== トースト ====== */
-        .toast {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            background: var(--toast);
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 10px;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: .25s
-        }
-
-            .toast.show {
-                opacity: 1;
-                transform: translateY(0)
-            }
-
-        pre.json {
-            max-height: 280px;
-            overflow: auto;
-            background: #0b1220;
-            color: #e2e8f0;
-            padding: 10px;
-            border-radius: 8px
-        }
-
-        .kbd {
-            font: 600 12px/1 var(--mono, ui-monospace);
-            padding: 2px 6px;
-            border: 1px solid var(--line);
-            border-bottom-width: 2px;
-            border-radius: 6px;
-            background: #fff
-        }
-    </style>
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="" />
 </head>
 <body>
+
+    <!-- ▼ 共通ヘッダー -->
     <header>
-        <h1>ネットワーク学習ツール <small class="sub">— 日本地図（簡易保存つき）</small></h1>
+        <h1>ネットワーク学習ツール</h1>
+        <nav>
+            <ul>
+                <li><a href="../index.html">ホーム</a></li>
+                <li><a href="#">トレーニング</a></li>
+                <li><a href="#">このサイトについて</a></li>
+            </ul>
+        </nav>
     </header>
 
-    <main class="page">
-        <div class="grid">
-            <!-- 左：正方形の日本地図 -->
-            <section class="card">
-                <div class="card-head">日本地図</div>
-                <div class="card-body">
-                    <div id="map" aria-label="日本地図（インタラクティブ）"></div>
-                    <p style="margin:.75rem 0 0;color:var(--muted);font-size:13px">
-                        ✅/⚠ は <span class="mono">localStorage</span> の保存内容に連動。保存されると右側に通知とJSONが更新されます。
-                    </p>
+    <!-- ▼ メインコンテンツ -->
+    <main class="page-wrap">
+        <section class="main-section">
+            <h2>日本地図（インタラクティブ） ＋ 操作画面プレビュー</h2>
+
+            <div class="grid">
+                <!-- 左：日本地図（正方形） -->
+                <div class="card">
+                    <div class="card-head">日本地図（クリックでページ遷移）</div>
+                    <div class="card-body">
+                        <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
+                        <p class="note">東京＝自宅Wi-Fi、福岡＝会社ネットワーク。地図は常に正方形で表示します。</p>
+                    </div>
                 </div>
-            </section>
 
-            <!-- 右：プレビュー＆保存状態 -->
-            <aside class="preview">
-                <section class="card">
-                    <div class="card-head">操作画面プレビュー</div>
-                    <div class="card-body">
-                        <div class="row" style="margin-bottom:8px">
-                            <span class="badge-flag" id="pill-home">Home: -</span>
-                            <span class="badge-flag" id="pill-company">Company: -</span>
+                <!-- 右：操作画面プレビュー（Home / Company） -->
+                <aside class="preview-col">
+                    <div class="card">
+                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <span>ユーザーがWebにアクセス</span>
+                            <a class="btn primary" href="./home.html">開く</a>
                         </div>
-                        <iframe src="home-simple.html" title="ホーム（プレビュー）"></iframe>
-                        <div style="height:8px"></div>
-                        <iframe src="company-simple.html" title="会社（プレビュー）"></iframe>
-                        <p class="row" style="margin-top:10px">
-                            <button class="btn" id="btnReloadPrev">プレビュー再読込</button>
-                        </p>
+                        <div class="card-body">
+                            <iframe class="preview-iframe" src="./home.html" loading="lazy" title="home preview"></iframe>
+                        </div>
                     </div>
-                </section>
 
-                <section class="card">
-                    <div class="card-head">保存状態 / デバッグ</div>
-                    <div class="card-body">
-                        <div class="row" style="margin-bottom:8px">
-                            <button class="btn primary" id="btnShow">保存JSONを再読込</button>
-                            <button class="btn warn" id="btnClear">保存データを全クリア</button>
+                    <div class="card">
+                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                            <span>会社（HTMLアップ）</span>
+                            <a class="btn primary" href="./company.html">開く</a>
                         </div>
-                        <pre class="json mono" id="jsonBox">{}</pre>
-                        <p style="color:var(--muted);font-size:12px">保存キー: <code>app:network:saves:default</code></p>
+                        <div class="card-body">
+                            <iframe class="preview-iframe" src="./company.html" loading="lazy" title="company preview"></iframe>
+                        </div>
                     </div>
-                </section>
-            </aside>
-        </div>
+
+                    <!-- 追加：保存状態ビューア（localStorage / sessionStorage 確認用） -->
+                    <div class="card">
+                        <div class="card-head">保存状態（メモリ診断）</div>
+                        <div class="card-body">
+                            <div class="row gap-sm" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                                <button id="btnReloadStore" class="btn">保存状態を再読み込み</button>
+                                <button id="btnMarkHomeOK" class="btn">Home 到達を保存（テスト）</button>
+                                <button id="btnMarkCompanyOK" class="btn">Company 到達を保存（テスト）</button>
+                                <button id="btnClearStore" class="btn">全消去（localStorage）</button>
+                            </div>
+                            <pre id="storeDump" class="dump" aria-live="polite">(読み込み中…)</pre>
+                            <p class="note">
+                                ※上の2つの「到達を保存」は <code>localStorage</code> に
+                                <code>summary.homeOK / summary.companyOK</code> を書き込みます。
+                                他タブで値が変わっても自動でここに反映されます（<code>storage</code> イベント）。
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- JavaScript無効時の静的フォールバック -->
+            <noscript>
+                <p>JavaScript が無効のため静的地図を表示します。</p>
+                <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="600" height="600" />
+            </noscript>
+        </section>
     </main>
 
+    <!-- ▼ 共通フッター -->
     <footer>
-        <small class="sub">© 2025 ネットワーク学習プロジェクト</small>
+        <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
     </footer>
 
-    <div class="toast" id="toast">保存データを更新しました</div>
+    <!-- トースト通知 -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <script>
-        /* ===== キーとヘルパ ===== */
-        const LS_KEY = 'app:network:saves:default';
-        const schemaV = 1;
-        const toast = document.getElementById('toast');
-        const jsonBox = document.getElementById('jsonBox');
-        const pillHome = document.getElementById('pill-home');
-        const pillComp = document.getElementById('pill-company');
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
 
-        const showToast = (msg = '保存データを更新しました') => {
-            toast.textContent = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 1800);
-        };
-        const getSave = () => {
-            try {
-                const raw = localStorage.getItem(LS_KEY);
-                if (!raw) return null;
-                const obj = JSON.parse(raw);
-                return (obj?.v === schemaV) ? obj : null;
-            } catch { return null; }
-        };
-
-        /* ===== 地図初期化 ===== */
-        const map = L.map('map', {
-            zoomControl: true, attributionControl: false
-        }).setView([36.5, 137.0], 5);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-
-        /* カスタムマーカー（✅/⚠付き） */
-        function mk(name, lat, lng, key) {
-            const icon = L.divIcon({
-                className: '', html: `<div class="badge-flag" id="flag-${key}">${name}: -</div>`, iconSize: [10, 10]
-            });
-            const m = L.marker([lat, lng], { icon }).addTo(map);
-            m.on('click', () => location.href = key === 'home' ? 'home-simple.html' : 'company-simple.html');
-            return m;
-        }
-
-        const homeMarker = mk('東京/Home', 35.6812, 139.7671, 'home');
-        const compMarker = mk('福岡/Company', 33.5902, 130.4017, 'company');
-
-        /* バッジ更新 */
-        function renderBadges() {
-            const save = getSave();
-            const homeOK = !!save?.summary?.homeOK;
-            const compOK = !!save?.summary?.companyOK;
-
-            const h = document.getElementById('flag-home');
-            const c = document.getElementById('flag-company');
-            if (h) { h.textContent = `東京/Home: ${homeOK ? '✅OK' : '⚠未達'}`; h.className = 'badge-flag ' + (homeOK ? 'ok' : 'ng'); }
-            if (c) { c.textContent = `福岡/Company: ${compOK ? '✅OK' : '⚠未達'}`; c.className = 'badge-flag ' + (compOK ? 'ok' : 'ng'); }
-
-            pillHome.textContent = `Home: ${homeOK ? '✅OK' : '⚠未達'}`;
-            pillHome.className = 'badge-flag ' + (homeOK ? 'ok' : 'ng');
-            pillComp.textContent = `Company: ${compOK ? '✅OK' : '⚠未達'}`;
-            pillComp.className = 'badge-flag ' + (compOK ? 'ok' : 'ng');
-        }
-
-        /* JSON パネル更新 */
-        function renderJson() {
-            const save = getSave();
-            jsonBox.textContent = save ? JSON.stringify(save, null, 2) : '{}';
-        }
-
-        /* storage イベントでライブ更新 */
-        window.addEventListener('storage', (e) => {
-            if (e.key === LS_KEY) {
-                renderBadges();
-                renderJson();
-                showToast('保存データが他タブから更新されました');
-            }
-        });
-
-        /* ボタン */
-        document.getElementById('btnShow').onclick = () => { renderBadges(); renderJson(); showToast('保存JSONを再読込'); };
-        document.getElementById('btnClear').onclick = () => {
-            localStorage.removeItem(LS_KEY);
-            sessionStorage.clear();
-            renderBadges(); renderJson(); showToast('保存データを全クリアしました');
-        };
-        document.getElementById('btnReloadPrev').onclick = () => {
-            document.querySelectorAll('iframe').forEach(f => f.contentWindow.location.reload());
-            showToast('プレビューを再読込しました');
-        };
-
-        /* 初期描画 */
-        renderBadges();
-        renderJson();
-    </script>
+    <!-- ストア（共通） -->
+    <script src="../JS/store.js"></script>
+    <!-- トレーニング画面ロジック（地図＋保存診断） -->
+    <script src="../JS/training.js"></script>
 </body>
 </html>
