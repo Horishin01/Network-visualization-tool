@@ -1,5 +1,4 @@
-﻿```html
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
@@ -14,8 +13,6 @@
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
-
-
 </head>
 <body>
 
@@ -34,7 +31,7 @@
     <!-- ▼ メインコンテンツ -->
     <main class="page-wrap">
         <section class="main-section">
-            <h2>日本地図（インタラクティブ）＋ 操作画面プレビュー</h2>
+            <h2>日本地図（インタラクティブ） ＋ 操作画面プレビュー</h2>
 
             <div class="grid">
                 <!-- 左：日本地図（正方形） -->
@@ -46,14 +43,13 @@
                     </div>
                 </div>
 
-                <!-- 右：操作画面プレビュー -->
+                <!-- 右：操作画面プレビュー（Home / Company） -->
                 <aside class="preview-col">
                     <div class="card">
                         <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
                             <span>ユーザーがWebにアクセス</span>
                             <a class="btn primary" href="./home.html">開く</a>
                         </div>
-                        <!-- ここを家用のPCを表示させる -->
                         <div class="card-body">
                             <iframe class="preview-iframe" src="./home.html" loading="lazy" title="home preview"></iframe>
                         </div>
@@ -64,15 +60,33 @@
                             <span>会社（HTMLアップ）</span>
                             <a class="btn primary" href="./company.html">開く</a>
                         </div>
-                        <!-- HTMLファイル（FTP）のようなものを実装させる。 -->
                         <div class="card-body">
                             <iframe class="preview-iframe" src="./company.html" loading="lazy" title="company preview"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- 追加：保存状態ビューア（localStorage / sessionStorage 確認用） -->
+                    <div class="card">
+                        <div class="card-head">保存状態（メモリ診断）</div>
+                        <div class="card-body">
+                            <div class="row gap-sm" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                                <button id="btnReloadStore" class="btn">保存状態を再読み込み</button>
+                                <button id="btnMarkHomeOK" class="btn">Home 到達を保存（テスト）</button>
+                                <button id="btnMarkCompanyOK" class="btn">Company 到達を保存（テスト）</button>
+                                <button id="btnClearStore" class="btn">全消去（localStorage）</button>
+                            </div>
+                            <pre id="storeDump" class="dump" aria-live="polite">(読み込み中…)</pre>
+                            <p class="note">
+                                ※上の2つの「到達を保存」は <code>localStorage</code> に
+                                <code>summary.homeOK / summary.companyOK</code> を書き込みます。
+                                他タブで値が変わっても自動でここに反映されます（<code>storage</code> イベント）。
+                            </p>
                         </div>
                     </div>
                 </aside>
             </div>
 
-            <!-- JavaScript無効時の静的フォールバック（任意） -->
+            <!-- JavaScript無効時の静的フォールバック -->
             <noscript>
                 <p>JavaScript が無効のため静的地図を表示します。</p>
                 <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="600" height="600" />
@@ -85,58 +99,17 @@
         <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
     </footer>
 
+    <!-- トースト通知 -->
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
 
-    <script>
-        // ===== 地図の初期化 =====
-        const INITIAL_ZOOM = 5;
-        const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
-
-        const map = L.map('map', {
-            zoomControl: true,
-            attributionControl: true,
-            minZoom: INITIAL_ZOOM,
-            maxZoom: 12,
-            maxBounds: JAPAN_BOUNDS,
-            maxBoundsViscosity: 1.0
-        }).setView([36.5, 137.0], INITIAL_ZOOM);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        // ヘルパー
-        const pin = (name, lat, lng) =>
-            L.marker([lat, lng], { title: name })
-                .addTo(map)
-                .bindTooltip(name, { direction: 'top', offset: [0, -8] });
-
-        // 通常の都市ピン
-        pin('札幌', 43.0621, 141.3544);
-        pin('大阪', 34.7025, 135.4959);
-
-        // 東京 → home.html
-        const tokyoMarker = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
-        tokyoMarker.on('click', () => { window.location.href = 'home.html'; });
-
-        // 福岡 → company.html
-        const fukuokaMarker = pin('福岡（クリックで会社へ）', 33.5902, 130.4017);
-        fukuokaMarker.on('click', () => { window.location.href = 'company.html'; });
-
-        // クリック可能であることをカーソルで示す
-        function setPointerCursor(m) {
-            m.on('add', () => { if (m._icon) m._icon.style.cursor = 'pointer'; });
-        }
-        setPointerCursor(tokyoMarker);
-        setPointerCursor(fukuokaMarker);
-
-        // レイアウト確定後とリサイズ時に再計算（正方形でもLeafletを正しく描画）
-        window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
-        window.addEventListener('resize', () => map.invalidateSize());
-    </script>
+    <!-- ストア（共通） -->
+    <script src="../JS/store.js"></script>
+    <!-- トレーニング画面ロジック（地図＋保存診断） -->
+    <script src="../JS/training.js"></script>
 </body>
 </html>
