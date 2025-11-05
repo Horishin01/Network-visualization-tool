@@ -11,9 +11,16 @@
     'use strict';
 
     // ---------- 小ユーティリティ ----------
+    /** 単一要素取得のショートハンド */
     const $ = (s, r = document) => r.querySelector(s);
+    /** 複数要素取得のショートハンド（Array化） */
     const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
+    /**
+     * 画面右下などに出す簡易トースト
+     * - #toast 要素が存在しない場合は黙って無視
+     * - 表示は1.8秒で自動消滅
+     */
     function showToast(msg) {
         const toast = $('#toast');
         if (!toast) return;
@@ -23,19 +30,37 @@
         showToast._t = setTimeout(() => toast.classList.remove('on'), 1800);
     }
 
+    /**
+     * JSON.stringify の安全ラッパ
+     * - 循環参照などで例外時は toString にフォールバック
+     */
     function safeJSON(obj) {
         try { return JSON.stringify(obj, null, 2); }
         catch { return String(obj); }
     }
 
     // ---------- ステータスの読み取り ----------
+    /**
+     * AppStore からサマリ（homeOK / companyOK）を取得
+     * - AppStore 未読込や未保存時は false でデフォルト
+     */
     function readStatus() {
         const s = (window.AppStore && window.AppStore.readSummary())
             || { homeOK: false, companyOK: false };
         return s;
     }
 
-    // 見出しに付けるピル（タイトルの <span> の直後に入れる）
+    /**
+     * 見出し要素にステータスピルを付ける/置き換える
+     * @param {HTMLElement} headEl  見出し .card-head
+     * @param {string} which        識別子 'home' | 'company'
+     * @param {boolean} ok          状態
+     * @param {string} labelText    表示ラベル
+     *
+     * 仕様:
+     * - 見出し内の先頭<span>の直後にピルを設置（存在しなければ headEl に付与）
+     * - 同じ data-pill の要素があれば置き換え
+     */
     function setPillOnHead(headEl, which, ok, labelText) {
         if (!headEl) return;
         const titleSpan = headEl.querySelector('span') || headEl;
@@ -48,6 +73,7 @@
             'margin-left:8px;padding:2px 8px;border-radius:999px;font-size:12px;' +
             'border:1px solid;white-space:nowrap;';
 
+        // 成否で配色を切替（淡色の成功/警告バッジ）
         if (ok) {
             pill.style.background = '#ecfdf5';
             pill.style.color = '#065f46';
@@ -63,10 +89,14 @@
     }
 
     // ---------- ステータスUI反映 ----------
+    /**
+     * マーカーのツールチップと右ペインの見出しピルを最新化
+     * @param {{home:L.Marker, company:L.Marker}} markers Leafletマーカー集合
+     */
     function updateStatusUI(markers) {
         const { homeOK, companyOK } = readStatus();
 
-        // ピンのツールチップ
+        // ピンのツールチップ（到達状態を即時可視化）
         if (markers?.home) {
             markers.home.bindTooltip(
                 `東京（クリックでホームへ） / Home: ${homeOK ? '✅OK' : '⚠未達'}`,
@@ -80,7 +110,7 @@
             );
         }
 
-        // ★ 位置修正：プレビュー側の見出し（タイトルの右隣）にのみピルを付ける
+        // ★ 位置修正: プレビュー側見出しの右にのみピルを付与
         const homeHead = document.querySelector('.preview-col .card:nth-of-type(1) .card-head');
         const compHead = document.querySelector('.preview-col .card:nth-of-type(2) .card-head');
         setPillOnHead(homeHead, 'home', homeOK, 'Home');
@@ -88,6 +118,10 @@
     }
 
     // ---------- 保存状態ダンプ ----------
+    /**
+     * localStorage 内の AppStore 本体を #storeDump にJSON整形表示
+     * - 未保存時は "(保存なし)" を表示
+     */
     function dumpStore() {
         const el = $('#storeDump');
         if (!el) return;
@@ -96,8 +130,16 @@
     }
 
     // ---------- 地図初期化 ----------
+    /**
+     * Leaflet マップ初期化と主要マーカー設置
+     * - #map 要素が正方形で配置済みである前提（CSSで保証）
+     * - 初期表示は日本全域（やや広め）
+     * - bounds 逸脱時にバウンド（maxBoundsViscosity=1.0）
+     * @returns {{home:L.Marker, company:L.Marker}}
+     */
     function initMap() {
         const INITIAL_ZOOM = 5;
+        // 日本の概形をカバーする緯度経度範囲（おおよそ）
         const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
 
         const map = L.map('map', {
@@ -109,23 +151,28 @@
             maxBoundsViscosity: 1.0
         }).setView([36.5, 137.0], INITIAL_ZOOM);
 
+        // OSM タイル（商用はクレジットと利用規約に留意）
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        /** マーカー生成のヘルパ */
         const pin = (name, lat, lng) => L.marker([lat, lng], { title: name }).addTo(map);
 
+        // 主要地点のピン（東京駅周辺 / 福岡天神周辺）
         const homeMarker = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
         const compMarker = pin('福岡（クリックで会社へ）', 33.5902, 130.4017);
 
+        // クリックで各ページへ遷移
         homeMarker.on('click', () => { window.location.href = 'home.html'; });
         compMarker.on('click', () => { window.location.href = 'company.html'; });
 
+        // マーカー上でポインタ形状に（アクセシビリティ改善）
         const setPointer = (m) => m.on('add', () => { if (m._icon) m._icon.style.cursor = 'pointer'; });
         setPointer(homeMarker); setPointer(compMarker);
 
-        // 正方形レイアウトでの再計算
+        // 正方形レイアウトに伴う Leaflet のサイズ再計算
         window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
         window.addEventListener('resize', () => map.invalidateSize());
 
@@ -133,24 +180,35 @@
     }
 
     // ---------- 起動 ----------
+    /**
+     * DOM構築完了後に初期化
+     * - AppStore の存在チェック（未読込ならコンソール警告）
+     * - 地図初期化 → 状態反映 → ダンプ
+     * - ボタン群のイベントバインド
+     * - storage イベントで他タブ更新を反映
+     */
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.AppStore) {
             console.warn('[training] AppStore が見つかりません。store.js を読み込んでください。');
         }
 
+        // 地図とマーカーを初期化
         const markers = initMap();
 
         // 初回描画
         updateStatusUI(markers);
         dumpStore();
 
-        // UIイベント（保存状態ビューア）
+        // ---- UIイベント（保存状態ビューア） ----
+
+        // 再読み込み: 画面に保存内容を反映
         $('#btnReloadStore')?.addEventListener('click', () => {
             dumpStore();
             updateStatusUI(markers);
             showToast('保存状態を再読み込みしました。');
         });
 
+        // Home 到達のテスト保存（summary.homeOK=true）
         $('#btnMarkHomeOK')?.addEventListener('click', () => {
             window.AppStore?.patch((s) => {
                 s.summary = s.summary || {};
@@ -162,6 +220,7 @@
             showToast('Home 到達（テスト）を保存しました。');
         });
 
+        // Company 到達のテスト保存（summary.companyOK=true）
         $('#btnMarkCompanyOK')?.addEventListener('click', () => {
             window.AppStore?.patch((s) => {
                 s.summary = s.summary || {};
@@ -173,6 +232,7 @@
             showToast('Company 到達（テスト）を保存しました。');
         });
 
+        // localStorage の AppStore エントリを全削除
         $('#btnClearStore')?.addEventListener('click', () => {
             window.AppStore?.clear();
             dumpStore();
@@ -180,7 +240,8 @@
             showToast('localStorage を全消去しました。');
         });
 
-        // 他タブでの保存変更をライブ反映
+        // ---- 他タブ/ウィンドウでの変更をライブ反映 ----
+        // storage イベントは「別コンテキストでの変更時」にのみ発火
         window.addEventListener('storage', (e) => {
             if (e.key === window.AppStore?.KEY) {
                 dumpStore();
