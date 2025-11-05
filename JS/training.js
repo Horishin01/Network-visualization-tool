@@ -80,7 +80,7 @@
             );
         }
 
-        //  位置修正：プレビュー側の見出し（タイトルの右隣）にのみピルを付ける
+        // ★ 位置修正：プレビュー側の見出し（タイトルの右隣）にのみピルを付ける
         const homeHead = document.querySelector('.preview-col .card:nth-of-type(1) .card-head');
         const compHead = document.querySelector('.preview-col .card:nth-of-type(2) .card-head');
         setPillOnHead(homeHead, 'home', homeOK, 'Home');
