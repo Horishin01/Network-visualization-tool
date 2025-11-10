@@ -1,148 +1,113 @@
-﻿/* =========================================================
- * training.js
- * - Leaflet地図の初期化（正方形 #map は CSS 側で担保）
- * - AppStore を読んで東京/福岡ピンのツールチップに ✅/⚠ を反映
- * - 右側プレビュー見出しにステータスピルを表示（位置修正）
- * - 保存状態ビューア（localStorageの JSON ダンプ、テスト保存/消去、トースト）
- * - storage イベントでライブ更新
- * ========================================================= */
-
+﻿// training.js
+// ==========================================================
+// ・Leaflet で日本地図を初期化（正方形は CSS 側）
+// ・東京=home.html、福岡=company.html へ遷移するマーカー
+// ・AppStore と連携し、保存サマリの可視化とメモリ診断を表示
+// ・同一タブ／他タブ更新を購読して自動反映
+// ・レガシーキー（appnetwork:saves:default）を自動移行
+// ==========================================================
 (function () {
     'use strict';
 
-    // ---------- 小ユーティリティ ----------
-    /** 単一要素取得のショートハンド */
-    const $ = (s, r = document) => r.querySelector(s);
-    /** 複数要素取得のショートハンド（Array化） */
-    const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+    // ---- 依存（AppStoreが無い場合の安全ガード） ----
+    const Store = window.AppStore || {
+        readSummary: () => ({ homeOK: false, companyOK: false }),
+        patch: (fn) => fn({}) || {},
+        onUpdate: () => () => { },
+        get: () => null,
+        clear: () => { }
+    };
 
-    /**
-     * 画面右下などに出す簡易トースト
-     * - #toast 要素が存在しない場合は黙って無視
-     * - 表示は1.8秒で自動消滅
-     */
-    function showToast(msg) {
-        const toast = $('#toast');
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.classList.add('on');
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(() => toast.classList.remove('on'), 1800);
+    // ---- レガシーキーの自動移行（コロン無し → 正式キー） ----
+    try {
+        const LEGACY = 'appnetwork:saves:default';
+        const OFFICIAL = 'app:network:saves:default';
+        const legacyVal = localStorage.getItem(LEGACY);
+        if (legacyVal && !localStorage.getItem(OFFICIAL)) {
+            localStorage.setItem(OFFICIAL, legacyVal);
+        }
+        // 念のため Store 側のキーも明示（未実装環境は無視される）
+        if (typeof Store.configure === 'function') {
+            Store.configure({ key: OFFICIAL, version: 1 });
+        }
+    } catch { }
+
+    // ---- 簡易トースト ----
+    function toast(msg) {
+        const box = document.getElementById('toast');
+        if (!box) return;
+        box.textContent = msg;
+        box.style.display = 'block';
+        setTimeout(() => { box.style.display = 'none'; }, 2000);
     }
 
-    /**
-     * JSON.stringify の安全ラッパ
-     * - 循環参照などで例外時は toString にフォールバック
-     */
-    function safeJSON(obj) {
-        try { return JSON.stringify(obj, null, 2); }
-        catch { return String(obj); }
+    // ---- 地図 ----
+    const INITIAL_ZOOM = 5;
+    const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
+
+    const PT_TOKYO = [35.6812, 139.7671];
+    const PT_FUKUOKA = [33.5902, 130.4017];
+
+    let map, badgeHome, badgeCompany;
+
+    function makeBadge(text, ok) {
+        const html = `
+      <div style="
+        display:inline-flex;align-items:center;gap:6px;
+        padding:4px 8px;border-radius:10px;
+        background:${ok ? '#0a7d34' : '#999'};
+        color:#fff;font:12px/1.2 system-ui,sans-serif;
+        box-shadow:0 1px 3px rgba(0,0,0,.25);
+      ">
+        <span style="width:8px;height:8px;border-radius:50%;
+                     background:${ok ? '#4cff81' : '#ddd'}"></span>
+        <span>${text}</span>
+      </div>`;
+        return L.divIcon({ className: 'status-badge', html, iconSize: [1, 1], iconAnchor: [-10, 12] });
     }
 
-    // ---------- ステータスの読み取り ----------
-    /**
-     * AppStore からサマリ（homeOK / companyOK）を取得
-     * - AppStore 未読込や未保存時は false でデフォルト
-     */
-    function readStatus() {
-        const s = (window.AppStore && window.AppStore.readSummary())
-            || { homeOK: false, companyOK: false };
-        return s;
-    }
+    function updateBadgesAndSummary() {
+        const s = Store.readSummary();
 
-    /**
-     * 見出し要素にステータスピルを付ける/置き換える
-     * @param {HTMLElement} headEl  見出し .card-head
-     * @param {string} which        識別子 'home' | 'company'
-     * @param {boolean} ok          状態
-     * @param {string} labelText    表示ラベル
-     *
-     * 仕様:
-     * - 見出し内の先頭<span>の直後にピルを設置（存在しなければ headEl に付与）
-     * - 同じ data-pill の要素があれば置き換え
-     */
-    function setPillOnHead(headEl, which, ok, labelText) {
-        if (!headEl) return;
-        const titleSpan = headEl.querySelector('span') || headEl;
-        const existed = headEl.querySelector(`[data-pill="${which}"]`);
+        if (badgeHome) badgeHome.remove();
+        if (badgeCompany) badgeCompany.remove();
 
-        const pill = document.createElement('span');
-        pill.dataset.pill = which;
-        pill.textContent = `${labelText}: ${ok ? 'OK' : '未達'}`;
-        pill.style.cssText =
-            'margin-left:8px;padding:2px 8px;border-radius:999px;font-size:12px;' +
-            'border:1px solid;white-space:nowrap;';
+        // Tokyo 側バッジ（重なり防止のため少しオフセット）
+        badgeHome = L.marker(
+            [PT_TOKYO[0] + 0.12, PT_TOKYO[1] - 0.25],
+            { icon: makeBadge(`Home 接続: ${s.homeOK ? 'OK' : 'NG'}`, s.homeOK) }
+        ).addTo(map);
 
-        // 成否で配色を切替（淡色の成功/警告バッジ）
-        if (ok) {
-            pill.style.background = '#ecfdf5';
-            pill.style.color = '#065f46';
-            pill.style.borderColor = '#a7f3d0';
-        } else {
-            pill.style.background = '#fff7ed';
-            pill.style.color = '#7c2d12';
-            pill.style.borderColor = '#fed7aa';
+        // Fukuoka 側バッジ
+        badgeCompany = L.marker(
+            [PT_FUKUOKA[0] - 0.15, PT_FUKUOKA[1] - 0.25],
+            { icon: makeBadge(`Company 接続: ${s.companyOK ? 'OK' : 'NG'}`, s.companyOK) }
+        ).addTo(map);
+
+        // テキストサマリ
+        const el = document.getElementById('txtSummary');
+        if (el) {
+            const cur = Store.get();
+            const t = cur?.updatedAt ? new Date(cur.updatedAt).toLocaleString() : '未保存';
+            el.textContent = `Home: ${s.homeOK ? 'OK' : 'NG'} / Company: ${s.companyOK ? 'OK' : 'NG'}（最終保存: ${t}）`;
         }
 
-        if (existed) existed.replaceWith(pill);
-        else titleSpan.appendChild(pill);
+        dumpStore(); // ダンプも更新
     }
 
-    // ---------- ステータスUI反映 ----------
-    /**
-     * マーカーのツールチップと右ペインの見出しピルを最新化
-     * @param {{home:L.Marker, company:L.Marker}} markers Leafletマーカー集合
-     */
-    function updateStatusUI(markers) {
-        const { homeOK, companyOK } = readStatus();
-
-        // ピンのツールチップ（到達状態を即時可視化）
-        if (markers?.home) {
-            markers.home.bindTooltip(
-                `東京（クリックでホームへ） / Home: ${homeOK ? '✅OK' : '⚠未達'}`,
-                { direction: 'top', offset: [0, -8] }
-            );
-        }
-        if (markers?.company) {
-            markers.company.bindTooltip(
-                `福岡（クリックで会社へ） / Company: ${companyOK ? '✅OK' : '⚠未達'}`,
-                { direction: 'top', offset: [0, -8] }
-            );
-        }
-
-        // ★ 位置修正: プレビュー側見出しの右にのみピルを付与
-        const homeHead = document.querySelector('.preview-col .card:nth-of-type(1) .card-head');
-        const compHead = document.querySelector('.preview-col .card:nth-of-type(2) .card-head');
-        setPillOnHead(homeHead, 'home', homeOK, 'Home');
-        setPillOnHead(compHead, 'company', companyOK, 'Company');
-    }
-
-    // ---------- 保存状態ダンプ ----------
-    /**
-     * localStorage 内の AppStore 本体を #storeDump にJSON整形表示
-     * - 未保存時は "(保存なし)" を表示
-     */
     function dumpStore() {
-        const el = $('#storeDump');
-        if (!el) return;
-        const s = window.AppStore?.get();
-        el.textContent = s ? safeJSON(s) : '(保存なし)';
+        const out = document.getElementById('storeDump');
+        if (!out) return;
+        const cur = Store.get();
+        if (!cur) {
+            out.textContent = '未保存（localStorage にデータなし）';
+            return;
+        }
+        out.textContent = JSON.stringify(cur, null, 2);
     }
 
-    // ---------- 地図初期化 ----------
-    /**
-     * Leaflet マップ初期化と主要マーカー設置
-     * - #map 要素が正方形で配置済みである前提（CSSで保証）
-     * - 初期表示は日本全域（やや広め）
-     * - bounds 逸脱時にバウンド（maxBoundsViscosity=1.0）
-     * @returns {{home:L.Marker, company:L.Marker}}
-     */
     function initMap() {
-        const INITIAL_ZOOM = 5;
-        // 日本の概形をカバーする緯度経度範囲（おおよそ）
-        const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
-
-        const map = L.map('map', {
+        map = L.map('map', {
             zoomControl: true,
             attributionControl: true,
             minZoom: INITIAL_ZOOM,
@@ -151,103 +116,85 @@
             maxBoundsViscosity: 1.0
         }).setView([36.5, 137.0], INITIAL_ZOOM);
 
-        // OSM タイル（商用はクレジットと利用規約に留意）
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        /** マーカー生成のヘルパ */
-        const pin = (name, lat, lng) => L.marker([lat, lng], { title: name }).addTo(map);
+        // 東京マーカー
+        L.marker(PT_TOKYO, { title: '東京（クリックで Home へ）' })
+            .addTo(map)
+            .bindTooltip('東京（クリックで Home へ）', { direction: 'top', offset: [0, -8] })
+            .on('click', () => { window.location.href = 'home.html'; });
 
-        // 主要地点のピン（東京駅周辺 / 福岡天神周辺）
-        const homeMarker = pin('東京（クリックでホームへ）', 35.6812, 139.7671);
-        const compMarker = pin('福岡（クリックで会社へ）', 33.5902, 130.4017);
+        // 福岡マーカー
+        L.marker(PT_FUKUOKA, { title: '福岡（クリックで Company へ）' })
+            .addTo(map)
+            .bindTooltip('福岡（クリックで Company へ）', { direction: 'top', offset: [0, -8] })
+            .on('click', () => { window.location.href = 'company.html'; });
 
-        // クリックで各ページへ遷移
-        homeMarker.on('click', () => { window.location.href = 'home.html'; });
-        compMarker.on('click', () => { window.location.href = 'company.html'; });
-
-        // マーカー上でポインタ形状に（アクセシビリティ改善）
-        const setPointer = (m) => m.on('add', () => { if (m._icon) m._icon.style.cursor = 'pointer'; });
-        setPointer(homeMarker); setPointer(compMarker);
-
-        // 正方形レイアウトに伴う Leaflet のサイズ再計算
+        // 正方形表示時の再計算
         window.addEventListener('load', () => setTimeout(() => map.invalidateSize(), 0));
         window.addEventListener('resize', () => map.invalidateSize());
-
-        return { home: homeMarker, company: compMarker };
     }
 
-    // ---------- 起動 ----------
-    /**
-     * DOM構築完了後に初期化
-     * - AppStore の存在チェック（未読込ならコンソール警告）
-     * - 地図初期化 → 状態反映 → ダンプ
-     * - ボタン群のイベントバインド
-     * - storage イベントで他タブ更新を反映
-     */
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!window.AppStore) {
-            console.warn('[training] AppStore が見つかりません。store.js を読み込んでください。');
-        }
+    function wireButtons() {
+        const $ = (id) => document.getElementById(id);
 
-        // 地図とマーカーを初期化
-        const markers = initMap();
-
-        // 初回描画
-        updateStatusUI(markers);
-        dumpStore();
-
-        // ---- UIイベント（保存状態ビューア） ----
-
-        // 再読み込み: 画面に保存内容を反映
-        $('#btnReloadStore')?.addEventListener('click', () => {
-            dumpStore();
-            updateStatusUI(markers);
-            showToast('保存状態を再読み込みしました。');
+        const btnReload = $('btnReloadStore');
+        if (btnReload) btnReload.addEventListener('click', () => {
+            updateBadgesAndSummary();
+            toast('保存状態を再読み込みしました。');
         });
 
-        // Home 到達のテスト保存（summary.homeOK=true）
-        $('#btnMarkHomeOK')?.addEventListener('click', () => {
-            window.AppStore?.patch((s) => {
-                s.summary = s.summary || {};
-                s.summary.homeOK = true;
-                return s;
+        const btnHome = $('btnMarkHomeOK');
+        if (btnHome) btnHome.addEventListener('click', () => {
+            Store.patch(d => {
+                d.summary = d.summary || {};
+                d.summary.homeOK = true;
+                d.home = d.home || {};
+                d.home.reach = { ok: true, at: new Date().toISOString() };
             });
-            dumpStore();
-            updateStatusUI(markers);
-            showToast('Home 到達（テスト）を保存しました。');
+            toast('Home 接続を OK として保存しました。');
+            updateBadgesAndSummary();
         });
 
-        // Company 到達のテスト保存（summary.companyOK=true）
-        $('#btnMarkCompanyOK')?.addEventListener('click', () => {
-            window.AppStore?.patch((s) => {
-                s.summary = s.summary || {};
-                s.summary.companyOK = true;
-                return s;
+        const btnCompany = $('btnMarkCompanyOK');
+        if (btnCompany) btnCompany.addEventListener('click', () => {
+            Store.patch(d => {
+                d.summary = d.summary || {};
+                d.summary.companyOK = true;
+                d.company = d.company || {};
+                d.company.reach = { ok: true, at: new Date().toISOString() };
             });
-            dumpStore();
-            updateStatusUI(markers);
-            showToast('Company 到達（テスト）を保存しました。');
+            toast('Company 接続を OK として保存しました。');
+            updateBadgesAndSummary();
         });
 
-        // localStorage の AppStore エントリを全削除
-        $('#btnClearStore')?.addEventListener('click', () => {
-            window.AppStore?.clear();
-            dumpStore();
-            updateStatusUI(markers);
-            showToast('localStorage を全消去しました。');
+        const btnClear = $('btnClearStore');
+        if (btnClear) btnClear.addEventListener('click', () => {
+            Store.clear();
+            toast('保存データを消去しました。');
+            updateBadgesAndSummary();
         });
+    }
 
-        // ---- 他タブ/ウィンドウでの変更をライブ反映 ----
-        // storage イベントは「別コンテキストでの変更時」にのみ発火
-        window.addEventListener('storage', (e) => {
-            if (e.key === window.AppStore?.KEY) {
-                dumpStore();
-                updateStatusUI(markers);
-                showToast('保存が更新されました。');
-            }
+    function boot() {
+        if (!document.getElementById('map')) return;
+        initMap();
+        wireButtons();
+        updateBadgesAndSummary();
+
+        // 他タブ・同一タブからの更新を購読
+        Store.onUpdate(() => {
+            updateBadgesAndSummary();
+            toast('保存内容が更新されました。');
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+    } else {
+        boot();
+    }
 })();
