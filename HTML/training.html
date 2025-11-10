@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿<!-- training.html -->
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
@@ -8,43 +9,13 @@
     <link rel="stylesheet" href="../CSS/style.css" />
     <link rel="stylesheet" href="../CSS/map.css" />
 
-    <!-- Leaflet（地図用） -->
+    <!-- Leaflet -->
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin="" />
-
-    <!-- 診断出力の最小装飾 -->
-    <style>
-        .dump {
-            background: #f6f8fa;
-            border: 1px solid #e3e8f0;
-            border-radius: 8px;
-            padding: 10px;
-            font: 12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
-            min-height: 84px;
-        }
-
-        .toast {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 9999;
-            display: none;
-            padding: 10px 12px;
-            background: #111a;
-            color: #fff;
-            border-radius: 8px;
-            backdrop-filter: blur(2px);
-            font-size: 13px;
-        }
-    </style>
 </head>
 <body>
-
-    <!-- ▼ 共通ヘッダー -->
     <header>
         <h1>ネットワーク学習ツール</h1>
         <nav>
@@ -56,22 +27,24 @@
         </nav>
     </header>
 
-    <!-- ▼ メインコンテンツ -->
     <main class="page-wrap">
         <section class="main-section">
             <h2>日本地図（インタラクティブ） ＋ 操作画面プレビュー</h2>
 
             <div class="grid">
-                <!-- 左：日本地図（正方形） -->
+                <!-- 左：日本地図（常に正方形） -->
                 <div class="card">
                     <div class="card-head">日本地図（クリックでページ遷移）</div>
                     <div class="card-body">
                         <div id="map" role="img" aria-label="日本地図（インタラクティブ）"></div>
-                        <p class="note">東京＝自宅Wi-Fi、福岡＝会社ネットワーク。地図は常に正方形で表示します。</p>
+                        <p class="note">東京＝自宅Wi-Fi、福岡＝会社ネットワーク。バッジは接続状況を示します。</p>
+                        <div style="margin-top:8px; font-size:12px; color:#444;">
+                            状態: <span id="diag">—</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 右：操作画面プレビュー（Home / Company） -->
+                <!-- 右：操作画面プレビュー＋診断 -->
                 <aside class="preview-col">
                     <div class="card">
                         <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -93,24 +66,22 @@
                         </div>
                     </div>
 
-                    <!-- 追加：保存状態ビューア（localStorage / sessionStorage 確認用） -->
+                    <!-- 保存・診断 -->
                     <div class="card">
                         <div class="card-head">保存状態（メモリ診断）</div>
-                        <div class="card-body">
-                            <div class="row gap-sm" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-                                <button id="btnReloadStore" class="btn">保存状態を再読み込み</button>
-                                <button id="btnMarkHomeOK" class="btn">Home 到達を保存（テスト）</button>
-                                <button id="btnMarkCompanyOK" class="btn">Company 到達を保存（テスト）</button>
-                                <button id="btnClearStore" class="btn">全消去（localStorage）</button>
+                        <div class="card-body" style="display:grid; gap:8px;">
+                            <div class="row" style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button id="btn-reload" class="btn">保存状態を再読込</button>
+                                <button id="btn-save-home-ok" class="btn">Home 到達を保存（テスト）</button>
+                                <button id="btn-save-company-ok" class="btn">Company 到達を保存（テスト）</button>
+                                <button id="btn-clear" class="btn">全消去（localStorage）</button>
                             </div>
-                            <pre id="storeDump" class="dump" aria-live="polite">(読み込み中…)</pre>
-                            <p class="note" id="txtSummary" style="margin-top:6px;"></p>
+                            <p class="note">全ページ共通で localStorage を使用します（同一オリジン）。</p>
                         </div>
                     </div>
                 </aside>
             </div>
 
-            <!-- JavaScript無効時の静的フォールバック -->
             <noscript>
                 <p>JavaScript が無効のため静的地図を表示します。</p>
                 <img src="../assets/japan-map.png" alt="日本地図（静的画像）" width="600" height="600" />
@@ -118,22 +89,28 @@
         </section>
     </main>
 
-    <!-- ▼ 共通フッター -->
     <footer>
         <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
     </footer>
-
-    <!-- トースト通知 -->
-    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
 
-    <!-- ストア（共通） -->
+    <!-- すべてのHTML共通の前段に置く -->
     <script src="../JS/store.js"></script>
-    <!-- トレーニング画面ロジック（地図＋保存診断） -->
+    <script>
+        AppStore.configure({
+            key: 'app:network:saves:default',
+            version: 1,
+            scope: 'local',        // 単一タブ内で共有/local：タブ間共有・永続
+            importOnStart: true      // 初回に local → session を自動取り込み
+        });
+    </script>
+
+    <!-- training 起動 -->
+    <script src="../JS/training_boot.js" defer></script>
     <script src="../JS/training.js"></script>
 </body>
 </html>

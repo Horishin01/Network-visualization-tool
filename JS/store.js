@@ -1,188 +1,157 @@
-// store.js
-// ==========================================================
-// AppStoreiƒuƒ‰ƒEƒUŒü‚¯”Ä—pƒXƒgƒŒ[ƒWƒ†[ƒeƒBƒŠƒeƒBj
-// - –{‘Ì•Û‘¶æ : localStoragei1ƒL[=1JSON‚ÌƒXƒiƒbƒvƒVƒ‡ƒbƒgj
-// - ‰º‘‚«•Û‘¶ : sessionStorageiƒ^ƒu’PˆÊ‚ÅŠö”­j
-// - ƒo[ƒWƒ‡ƒ“ƒQ[ƒgE‹[—ƒAƒgƒ~ƒbƒNpatchE•Û‘¶•t—^
-// - “¯ˆêƒ^ƒuXV’Ê’m : window ‚É CustomEvent 'appstore:updated' ‚ğ”­‰Î
-// - ‘¼ƒ^ƒu“¯Šú       : 'storage' ƒCƒxƒ“ƒg‚ğƒtƒbƒN‚µ‚Ä“¯ƒCƒxƒ“ƒg‚ğÄ”­‰Î
-//
-// Šú‘ÒƒXƒL[ƒ}i—áj:
-// {
-//   v: number,                 // ƒXƒL[ƒ}”Å
-//   updatedAt: string,         // ISO8601 ‚ÅÅI•Û‘¶
-//   home?:    { reach?: any }, // ©‘î‘¤ƒƒ^i”CˆÓj
-//   company?: { reach?: any }, // ‰ïĞ‘¤ƒƒ^i”CˆÓj
-//   summary?: { homeOK?: boolean, companyOK?: boolean } // UI—pƒTƒ}ƒŠ
-// }
-//
-// ŒöŠJAPIF
-//   AppStore.configure(opts)  c ƒL[–¼‚âƒo[ƒWƒ‡ƒ“‚Ìã‘‚«
-//   AppStore.get()            c ƒIƒuƒWƒFƒNƒgæ“¾i”Å•sˆê’v‚Í nullj
-//   AppStore.set(val)         c ‚»‚Ì‚Ü‚Ü•Û‘¶i—vƒoƒŠƒf[ƒVƒ‡ƒ“j
-//   AppStore.patch(mutator)   c Šù‘¶’l‚É·•ª“K—p‚µ‚Ä•Û‘¶iv/updatedAt‚ğ‹­§XVj
-//   AppStore.clear()          c localStorage ‚ÌŠY“–ƒL[‚ğíœ
-//   AppStore.readSummary()    c {homeOK, companyOK} ‚ğ boolean ‚Å•Ô‹p
-//   AppStore.saveDraft(scope,data) / loadDraft / clearDraft c ‰º‘‚«‘€ì
-//   AppStore.onUpdate(cb)     c “¯ˆêƒ^ƒuXV‚ğw“Çi‰ğœŠÖ”‚ğ•Ô‚·j
-//
-// ’ˆÓ:
-// - localStorage ‚Í•¶š—ñ‚Ì‚İB•K‚¸ JSON.stringify / parse ‚Å‰•œ‚·‚é
-// - ŒÂlî•ñ‚â”é“½î•ñ‚Í•Û‘¶‚µ‚È‚¢iXSS“™‚Å“Ç‚İo‚³‚ê“¾‚éj
-// - ‘å—e—Ê‚âŒŸõ‚ª•K—v‚È‚ç IndexedDB ‚ğŒŸ“¢
-// - “¯ˆêƒ^ƒu‚Ì setItem() ‚Å‚Í 'storage' ‚Í”­‰Î‚µ‚È‚¢‚½‚ß CustomEvent ‚ğ©‘O‚Å”­‰Î
-// ==========================================================
+ï»¿/* =========================================================
+ * store.js  â€• ã‚¯ãƒ­ã‚¹ã‚¿ãƒ–å…±æœ‰ã‚¹ãƒˆã‚¢ï¼ˆlocalStorage / sessionStorage åˆ‡æ›¿ï¼‰
+ *
+ * ç›®çš„:
+ *  - 1ã‚­ãƒ¼=1 JSON ã®ã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆä¿å­˜ï¼ˆæ•´åˆæ€§é‡è¦–ï¼‰
+ *  - set/patch ã§åŒã‚¿ãƒ–ã®è³¼èª­è€…ã¸å³æ™‚é€šçŸ¥ï¼ˆonChangeï¼‰
+ *  - ä»–ã‚¿ãƒ–å…±æœ‰ãŒå¿…è¦ãªå ´åˆã®ã¿ window.storage ã‚’åˆ©ç”¨ï¼ˆlocal ã®ã¿ï¼‰
+ *  - å˜ä¸€ã‚¿ãƒ–å†…ã§ã®ãƒšãƒ¼ã‚¸é·ç§»å…±æœ‰ã¯ session ã‚’ä½¿ã†ï¼ˆæ¨å¥¨ï¼‰
+ * ========================================================= */
 (function (global) {
     'use strict';
 
-    /** “¯ˆêƒ^ƒuŒü‚¯‚ÌXVƒCƒxƒ“ƒg–¼ */
-    const EVT_UPDATED = 'appstore:updated';
+    // ---- å†…éƒ¨çŠ¶æ…‹ ----
+    let KEY = 'app:network:saves:default';
+    let V = 1;
+    let SCOPE = 'local';                 // 'local' | 'session'
+    let STORAGE = window.localStorage;
+    let IMPORT_ON_START = false;
 
-    /** Šù’èƒIƒvƒVƒ‡ƒ“i•K—v‚É‰‚¶‚Ä configure ‚Åã‘‚«‰Âj */
-    const defaults = {
-        key: 'app:network:saves:default',     // localStorage ƒL[
-        version: 1,                            // ƒXƒL[ƒ}”Å
-        draftsPrefix: 'app:network:session:'   // sessionStorage ‚ÌÚ“ª«
-    };
+    const listeners = new Set();
 
-    /** ÀÛ‚Ég—p‚·‚éƒIƒvƒVƒ‡ƒ“iƒ‰ƒ“ƒ^ƒCƒ€‚Å‰Â•Ïj */
-    const opts = { ...defaults };
-
-    // ---- “à•”ƒ†[ƒeƒBƒŠƒeƒB ----
-    /** —áŠO‚ğˆ¬‚è‚Â‚Ô‚µ‚Ä JSON.parseB¸”s‚Í nullB */
+    // ---- util ----
     const safeParse = (raw) => { try { return JSON.parse(raw); } catch { return null; } };
-
-    /** ƒfƒB[ƒvƒRƒs[BstructuredClone ‚ª‚ ‚ê‚Î—Dæg—pB */
-    const deepClone = (obj) => {
-        if (typeof structuredClone === 'function') return structuredClone(obj);
-        return safeParse(JSON.stringify(obj));
+    const nowIso = () => new Date().toISOString();
+    const chooseStorage = (scope) => {
+        SCOPE = (scope === 'session') ? 'session' : 'local';
+        STORAGE = (SCOPE === 'session') ? window.sessionStorage : window.localStorage;
+    };
+    const emitChange = (source, data) => {
+        listeners.forEach(cb => { try { cb({ data, source }); } catch { } });
     };
 
-    /** ISO8601 Œ»İ */
-    const nowISO = () => new Date().toISOString();
+    // ---- I/O ----
+    function getRaw() {
+        let obj = null;
+        const raw = STORAGE.getItem(KEY);
+        obj = raw ? safeParse(raw) : null;
 
-    /** “¯ˆêƒ^ƒu‚Ìw“ÇÒŒü‚¯‚ÉXVƒCƒxƒ“ƒg‚ğ“Š‚°‚é */
-    function emitUpdated(detail) {
-        try {
-            const ev = new CustomEvent(EVT_UPDATED, { detail });
-            global.dispatchEvent(ev);
-        } catch { /* ŒÃ‚¢ƒuƒ‰ƒEƒU‚Å‚Í–³‹ */ }
-    }
-
-    // ---- ƒRƒAI/O ----
-    /** •Û‘¶’l‚ğæ“¾iƒXƒL[ƒ}”Åˆê’v‚Ì‚İ—LŒøj */
-    function get() {
-        const raw = localStorage.getItem(opts.key);
-        if (!raw) return null;
-        const obj = safeParse(raw);
-        return obj && obj.v === opts.version ? obj : null;
-    }
-
-    /** ’l‚ğ‚»‚Ì‚Ü‚Ü•Û‘¶iƒGƒ‰[‚Í—áŠO‚ğƒXƒ[j */
-    function set(val) {
-        try {
-            localStorage.setItem(opts.key, JSON.stringify(val));
-            emitUpdated({ type: 'set', key: opts.key });
-        } catch (e) {
-            console.error('[AppStore] set ¸”s:', e);
-            throw e;
+        // session ã‚’ä½¿ã†æ™‚ã®ã¿ã€åˆå›ã¯ local â†’ session ã‚’å–ã‚Šè¾¼ã¿
+        if (!obj && SCOPE === 'session' && IMPORT_ON_START) {
+            const lraw = window.localStorage.getItem(KEY);
+            const lobj = lraw ? safeParse(lraw) : null;
+            if (lobj && lobj.v === V) {
+                window.sessionStorage.setItem(KEY, JSON.stringify(lobj));
+                obj = lobj;
+            }
         }
+        return (obj && obj.v === V) ? obj : null;
     }
 
-    /** Šù‘¶’l‚Ö·•ª“K—p‚µ‚Ä•Û‘¶iv/updatedAt ‚ğ‹­§XVj */
+    function setRaw(obj, source = 'local') {
+        STORAGE.setItem(KEY, JSON.stringify(obj));
+        emitChange(source, obj);
+    }
+
+    // ---- public API ----
+    function configure({ key, version, scope = 'local', importOnStart = false } = {}) {
+        if (key) KEY = key;
+        if (typeof version === 'number') V = version;
+        chooseStorage(scope);
+        IMPORT_ON_START = !!importOnStart;
+
+        window.addEventListener('storage', (e) => {
+            if (SCOPE !== 'local') return;          // session ã¯ä»–ã‚¿ãƒ–é€£æºãªã—
+            if (e.key !== KEY) return;
+            const obj = safeParse(e.newValue);
+            if (obj && obj.v === V) emitChange('storage', obj);
+        });
+    }
+
+    function onChange(cb) { if (typeof cb === 'function') listeners.add(cb); }
+    function offChange(cb) { listeners.delete(cb); }
+
+    function get() { return getRaw(); }
+
+    function set(val) {
+        if (!val || typeof val !== 'object') throw new Error('set() ã«ã¯ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ¸¡ã—ã¦ãã ã•ã„');
+        val.v = V;
+        val.updatedAt = nowIso();
+        setRaw(val, 'local');
+    }
+
     function patch(mutator) {
-        const cur = get() || { v: opts.version };
-        const base = deepClone(cur) || { v: opts.version };
-        const next = mutator ? (mutator(base) || base) : base;
-        next.v = opts.version;
-        next.updatedAt = nowISO();
-        set(next);
+        const cur = getRaw() || { v: V };
+        const draft = (typeof structuredClone === 'function') ? structuredClone(cur) : safeParse(JSON.stringify(cur));
+        const next = mutator ? (mutator(draft) || draft) : draft;
+        next.v = V;
+        next.updatedAt = nowIso();
+        setRaw(next, 'local');
         return next;
     }
 
-    /** ƒNƒŠƒAi‰Šú‰»j */
     function clear() {
-        localStorage.removeItem(opts.key);
-        emitUpdated({ type: 'clear', key: opts.key });
+        STORAGE.removeItem(KEY);
+        emitChange('local', null);
     }
 
-    /** UI—p‚ÌŒy—ÊƒTƒ}ƒŠ */
+    // ä»»æ„ï¼šæ˜ç¤ºæ°¸ç¶š
+    function persistToLocal() {
+        const raw = (SCOPE === 'session') ? window.sessionStorage.getItem(KEY) : STORAGE.getItem(KEY);
+        if (raw) window.localStorage.setItem(KEY, raw);
+    }
+    function persistToSession() {
+        const raw = (SCOPE === 'local') ? window.localStorage.getItem(KEY) : STORAGE.getItem(KEY);
+        if (raw) window.sessionStorage.setItem(KEY, raw);
+    }
+
+    // ---- ãƒ‰ãƒ¡ã‚¤ãƒ³ãƒ˜ãƒ«ãƒ‘ï¼ˆHome / Companyï¼‰ ----
+    function updateHomeEdges(payload = {}) {
+        return patch(d => {
+            d.home = d.home || {};
+            d.home.edges = { ...(d.home.edges || {}), ...payload };
+
+            const e = d.home.edges;
+            const count =
+                (e?.fiberOnu ? 1 : 0) +
+                (e?.onuRouter ? 1 : 0) +
+                (e?.routerPc ? 1 : 0);
+
+            d.home.reach = {
+                internet: !!(e?.fiberOnu && e?.onuRouter),
+                count
+            };
+
+            d.summary = d.summary || {};
+            d.summary.homeOK = !!(e?.fiberOnu && e?.onuRouter && e?.routerPc);
+        });
+    }
+
+    function updateCompanyEdges(payload = {}) {
+        return patch(d => {
+            d.company = d.company || {};
+            d.company.edges = { ...(d.company.edges || {}), ...payload };
+
+            const e = d.company.edges || {};
+            d.summary = d.summary || {};
+            d.summary.companyOK = !!e.minOK;
+        });
+    }
+
     function readSummary() {
-        const s = get();
+        const s = getRaw();
         return {
             homeOK: !!s?.summary?.homeOK,
             companyOK: !!s?.summary?.companyOK
         };
     }
 
-    // ---- ‰º‘‚«isessionStoragej ----
-    const draftKey = (scope) => opts.draftsPrefix + String(scope || 'default');
-
-    /** ‰º‘‚«•Û‘¶iƒ^ƒu”ÍˆÍj */
-    function saveDraft(scope, data) {
-        const payload = { v: opts.version, updatedAt: nowISO(), ...data };
-        sessionStorage.setItem(draftKey(scope), JSON.stringify(payload));
-        return payload;
-    }
-
-    /** ‰º‘‚«“Ç */
-    function loadDraft(scope) {
-        const raw = sessionStorage.getItem(draftKey(scope));
-        return raw ? safeParse(raw) : null;
-    }
-
-    /** ‰º‘‚«íœ */
-    function clearDraft(scope) {
-        sessionStorage.removeItem(draftKey(scope));
-    }
-
-    // ---- “¯ˆêƒ^ƒuw“ÇAPI ----
-    /**
-     * XVƒCƒxƒ“ƒgw“ÇB‰ğœŠÖ”‚ğ•Ô‚·B
-     * @param {(detail:any)=>void} cb
-     * @returns {() => void}
-     */
-    function onUpdate(cb) {
-        if (typeof cb !== 'function') return () => { };
-        const handler = (e) => cb(e.detail);
-        global.addEventListener(EVT_UPDATED, handler);
-        return () => global.removeEventListener(EVT_UPDATED, handler);
-    }
-
-    // ---- ‘¼ƒ^ƒu“¯Šúistoragej ----
-    global.addEventListener('storage', (e) => {
-        if (e.key === opts.key) {
-            // ‘¼ƒ^ƒu‚Å•ÏX ¨ “¯ˆêƒ^ƒuw“ÇÒ‚Ö‚à“`”À
-            emitUpdated({ type: 'storage', key: opts.key });
-        }
-    });
-
-    // ---- İ’è”½‰f ----
-    /**
-     * ƒ‰ƒ“ƒ^ƒCƒ€İ’èiƒL[–¼Eƒo[ƒWƒ‡ƒ““™j‚ğã‘‚«B
-     * @param {{key?:string, version?:number, draftsPrefix?:string}} cfg
-     */
-    function configure(cfg = {}) {
-        if (cfg.key) opts.key = String(cfg.key);
-        if (Number.isInteger(cfg.version)) opts.version = cfg.version | 0;
-        if (cfg.draftsPrefix) opts.draftsPrefix = String(cfg.draftsPrefix);
-    }
-
-    // ---- ŒöŠJƒCƒ“ƒ^[ƒtƒF[ƒX ----
-    const api = {
-        // İ’è
-        configure,
-        // QÆ—pi“Ç‚İæ‚èê—pj
-        get KEY() { return opts.key; },
-        get V() { return opts.version; },
-        // –{‘ÌI/O
-        get, set, patch, clear, readSummary,
-        // ƒhƒ‰ƒtƒg
-        saveDraft, loadDraft, clearDraft,
-        // ƒCƒxƒ“ƒg
-        onUpdate,
-        EVT_UPDATED
+    global.AppStore = {
+        configure, get, set, patch, clear, onChange, offChange,
+        readSummary, updateHomeEdges, updateCompanyEdges,
+        persistToLocal, persistToSession,
+        get KEY() { return KEY; },
+        get V() { return V; },
+        get SCOPE() { return SCOPE; }
     };
-
-    global.AppStore = api;
 })(window);
