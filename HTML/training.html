@@ -45,28 +45,58 @@
                 </div>
 
                 <!-- 右：操作画面プレビュー＋診断 -->
+                
                 <aside class="preview-col">
-                    <div class="card">
-                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <span>ユーザーがWebにアクセス</span>
-                            <a class="btn primary" href="./home.html">開く</a>
+                    <div class="card pc-card">
+                        <div class="card-head head-inline">
+                            <span>ユーザーPC（Windows風ブラウザ）</span>
+                            <span id="pcConnBadge" class="badge badge-ng" aria-live="polite">F</span>
                         </div>
                         <div class="card-body">
-                            <iframe class="preview-iframe" src="./home.html" loading="lazy" title="home preview"></iframe>
+                            <div class="pc-window" aria-live="polite">
+                                <div class="pc-window__bar">
+                                    <span class="pc-led red"></span>
+                                    <span class="pc-led yellow"></span>
+                                    <span class="pc-led green"></span>
+                                    <span class="pc-title">Virtual Windows</span>
+                                </div>
+                                <div class="pc-address">
+                                    <span>URL:</span>
+                                    <span id="pcAddress">https://www.google.com/</span>
+                                </div>
+                                <div class="pc-screen" id="pcScreen">
+                                    <div class="pc-screen__error">
+                                        <strong>接続エラー</strong>
+                                        <p>3/3 の配線がそろうと Google へ接続できます。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pc-links">
+                                <a class="btn ghost" href="./home.html" target="_blank" rel="noreferrer">自宅シミュレータを開く</a>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                            <span>会社（HTMLアップ）</span>
-                            <a class="btn primary" href="./company.html">開く</a>
+                    <div class="card company-card">
+                        <div class="card-head head-inline">
+                            <span>会社（HTMLアップ / FTP接続）</span>
+                            <span id="companyConnBadge" class="badge badge-ng" aria-live="polite">F</span>
                         </div>
-                        <div class="card-body">
-                            <iframe class="preview-iframe" src="./company.html" loading="lazy" title="company preview"></iframe>
+                        <div class="card-body company-body">
+                            <div class="preview-lock" id="companyLock">
+                                <p>会社ネットワークで ONU→ルーター→Webサーバー が接続されると、ここに社内画面を読み込みます。</p>
+                            </div>
+                            <iframe class="preview-iframe" id="companyPreview" title="company preview" loading="lazy" hidden></iframe>
+                            <div class="ftp-state">
+                                <span>FTPサーバーアクセス:</span>
+                                <span id="ftpStatus" class="badge badge-ng">F</span>
+                            </div>
+                            <div class="pc-links">
+                                <a class="btn ghost" href="./company.html" target="_blank" rel="noreferrer">会社シミュレータを開く</a>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 保存・診断 -->
+<!-- 保存・診断 -->
                     <div class="card">
                         <div class="card-head">保存状態（メモリ診断）</div>
                         <div class="card-body" style="display:grid; gap:8px;">

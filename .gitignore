@@ -6,11 +6,12 @@ obj/
 *.user
 *.suo
 
-# VS Code
-.vscode/
-
 # Visual Studio project settings
 .vs/
 
 # Visual Studio project settings
 .vs/Network-visualization-tool
+
+# Node/Vite artifacts
+node_modules/
+dist/
