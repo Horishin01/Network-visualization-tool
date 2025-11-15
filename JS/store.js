@@ -1,8 +1,7 @@
 ﻿/* =========================================================
  * store.js  AppStore (localStorage / sessionStorage ラッパ)
  * 変更点:
- *  - _ensureRoot の堅牢化
- *  - readSummary() / saveDraft() そのまま
+ *  - set/patch/clear 時に BroadcastChannel と CustomEvent で更新通知
  * ========================================================= */
 (function (global) {
     'use strict';
@@ -15,6 +14,12 @@
         company: {},
         summary: { homeOK:false, companyOK:false }
     });
+
+    const BC_NAME = 'network-app';
+    function broadcast(){
+        try { const ch = new BroadcastChannel(BC_NAME); ch.postMessage({ type:'store-updated', at: Date.now() }); ch.close(); } catch {}
+        try { window.dispatchEvent(new CustomEvent('appstore:updated', { detail:{ at: Date.now() } })); } catch {}
+    }
 
     function nowISO(){ return new Date().toISOString(); }
     function clone(x){ return JSON.parse(JSON.stringify(x)); }
@@ -41,18 +46,24 @@
                 init.v = this._conf.version;
                 init.updatedAt = nowISO();
                 this._rawWrite(init);
+                broadcast();
                 return init;
             }
-            if (typeof cur.v!=='number' || cur.v !== this._conf.version){
+            if (typeof cur.v !== 'number' || cur.v !== this._conf.version){
                 cur.v = this._conf.version;
                 cur.updatedAt = nowISO();
                 this._rawWrite(cur);
+                broadcast();
             }
             let patched = false;
-            if (!cur.home)    { cur.home    = clone(DEF.home);    patched=true; }
-            if (!cur.company) { cur.company = clone(DEF.company); patched=true; }
-            if (!cur.summary) { cur.summary = clone(DEF.summary); patched=true; }
-            if (patched){ cur.updatedAt = nowISO(); this._rawWrite(cur); }
+            if (!cur.home)    { cur.home    = clone(DEF.home);    patched = true; }
+            if (!cur.company) { cur.company = clone(DEF.company); patched = true; }
+            if (!cur.summary) { cur.summary = clone(DEF.summary); patched = true; }
+            if (patched){
+                cur.updatedAt = nowISO();
+                this._rawWrite(cur);
+                broadcast();
+            }
             return cur;
         },
 
@@ -72,21 +83,24 @@
             next.v = this._conf.version;
             next.updatedAt = nowISO();
             this._rawWrite(next);
+            broadcast();
             return clone(next);
         },
         patch(mutator){
             const base = this._ensureRoot();
             const draft = clone(base);
-            const ret = (typeof mutator==='function') ? mutator(draft) : undefined;
-            const next = (ret && typeof ret==='object') ? ret : draft;
+            const ret = (typeof mutator === 'function') ? mutator(draft) : undefined;
+            const next = (ret && typeof ret === 'object') ? ret : draft;
             next.v = this._conf.version;
             next.updatedAt = nowISO();
             this._rawWrite(next);
+            broadcast();
             return clone(next);
         },
         clear(){
             this._storage.removeItem(this._conf.key);
             console.error(`${PREFIX} cleared`);
+            broadcast();
         },
         readSummary(){
             const o = this._ensureRoot();
@@ -94,7 +108,7 @@
             return { homeOK: !!s.homeOK, companyOK: !!s.companyOK };
         },
         saveDraft(scope, data){
-            if (!scope || typeof data!=='object'){ console.error(`${PREFIX} saveDraft invalid args`); return this.get(); }
+            if (!scope || typeof data !== 'object'){ console.error(`${PREFIX} saveDraft invalid args`); return this.get(); }
             return this.patch(d => {
                 if (!d[scope]) d[scope] = {};
                 Object.assign(d[scope], clone(data));
