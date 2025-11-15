@@ -90,6 +90,172 @@ nav a {
     background: #fff;
 }
 
+.head-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.badge-ok {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.badge-ng {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.pc-card .card-body,
+.company-card .card-body {
+    display: grid;
+    gap: 12px;
+}
+
+.pc-window {
+    border: 1px solid #cad6ed;
+    border-radius: 14px;
+    background: #f7f9ff;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+.pc-window__bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: linear-gradient(90deg, #1e3a8a, #2563eb);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.pc-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.pc-led.red { background: #f87171; }
+.pc-led.yellow { background: #fbbf24; }
+.pc-led.green { background: #34d399; }
+
+.pc-address {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #d9e1f5;
+    background: #fff;
+}
+
+.pc-screen {
+    min-height: 220px;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.pc-screen.online {
+    background: #ffffff;
+    color: #0f172a;
+}
+
+.pc-screen__google {
+    text-align: left;
+    width: 100%;
+    max-width: 380px;
+}
+
+.pc-screen__google h3 {
+    margin: 0 0 12px;
+    font-size: 22px;
+    color: #1a1a1a;
+}
+
+.pc-screen__google .search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pc-screen__google .search input {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid #cbd5f5;
+    font-size: 13px;
+}
+
+.pc-screen__google .search button {
+    border: 0;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    padding: 8px 16px;
+    font-weight: 600;
+}
+
+.pc-screen__google ul {
+    list-style: disc;
+    padding-left: 20px;
+    color: #374151;
+    font-size: 13px;
+}
+
+.pc-screen__error {
+    display: grid;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.pc-links {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.company-body .preview-iframe[hidden] {
+    display: none;
+}
+
+.preview-lock {
+    border: 1px dashed #cfd8f3;
+    border-radius: 12px;
+    padding: 16px;
+    background: #f8fbff;
+    color: #556075;
+    font-size: 13px;
+}
+
+.ftp-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
 /* ボタン */
 .btn {
     padding: 8px 12px;
@@ -103,6 +269,12 @@ nav a {
         background: #1b5cff;
         color: #fff;
         border-color: #1b5cff;
+    }
+    
+    .btn.ghost {
+        background: #fff;
+        border-color: #d4dbe9;
+        color: #1f2937;
     }
 
 .note {

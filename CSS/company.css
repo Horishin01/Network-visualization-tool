@@ -1,34 +1,100 @@
-/* ===== レイアウト ===== */
-.company-grid {
+:root {
+    --panel-border: #d7deee;
+    --panel-bg: #ffffff;
+    --stage-bg: #f7f9ff;
+    --accent: #2563eb;
+    --danger: #ef4444;
+    --success: #22c55e;
+}
+
+.company-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 32px;
+}
+
+.company-workspace {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 16px;
-    align-items: start;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
 }
 
-.canvas-card {
-    padding: 0;
+@media (max-width: 960px) {
+    .company-workspace {
+        grid-template-columns: 1fr;
+    }
 }
 
-.canvas-title {
-    background: #ffffff;
-    color: #1c2333;
-    padding: 10px 14px;
+.card {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.badge.status {
+    font-size: 1.2rem;
     font-weight: 700;
-    border: 1px solid #e3e8f0;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
-    border-bottom: 0;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge.status.on {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.stage-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .stage {
     position: relative;
-    height: 520px;
-    background: #ffffff;
-    border: 1px solid #e3e8f0;
-    border-bottom-left-radius: 12px;
-    border-bottom-right-radius: 12px;
+    height: 540px;
+    border-radius: 20px;
+    border: 2px dashed #cdd7f4;
+    background: var(--stage-bg);
     overflow: hidden;
+}
+
+.fiber-anchor {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+    z-index: 5;
+}
+
+.fiber-anchor.selected {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.7) inset, 0 10px 20px rgba(37, 99, 235, 0.45);
 }
 
 .cable-layer {
@@ -37,208 +103,149 @@
     pointer-events: none;
 }
 
-.note {
-    padding: 12px;
-    border-top: 1px solid #e3e8f0;
-}
-
-/* パレット */
-.side .palette {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-.side .pal {
-    padding: 10px 12px;
-    border: 1px solid #cfd4e6;
-    border-radius: 10px;
-    background: #fff;
-}
-
-    .side .pal.tool {
-        background: #eef6ff;
-    }
-
-    .side .pal.hidden, [data-mode="pro"].hidden {
-        display: none !important;
-    }
-
-.toggle {
+.side-panel {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 12px 0;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.badge {
-    font-size: 12px;
-    padding: 6px 10px;
+.palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.palette button,
+.tool-buttons .tool-btn,
+.btn {
+    border: 1px solid var(--panel-border);
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.palette button:hover,
+.tool-buttons .tool-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.btn.ghost {
+    background: transparent;
+}
+
+.dns-form {
+    display: grid;
+    gap: 10px;
+}
+
+.dns-form input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--panel-border);
     border-radius: 8px;
-    background: #eef2f8;
-    display: inline-block;
 }
 
-/* ===== ノード ===== */
+.hint {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.dump {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    min-height: 160px;
+    max-height: 320px;
+    overflow: auto;
+}
+
 .node {
     position: absolute;
+    min-width: 160px;
+    border-radius: 14px;
+    background: #fff;
+    border: 2px solid #cbd5f5;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
     user-select: none;
-    cursor: grab;
-    color: #1a2236;
-    background: #ffffff;
-    border: 2px solid #9bb5d8;
-    border-radius: 10px;
-    min-width: 170px;
-    box-shadow: 0 8px 18px rgba(30,41,59,.08);
 }
 
-    .node.dragging {
-        cursor: grabbing
-    }
-
-    .node .title {
-        font-weight: 700;
-        padding: 10px 12px 4px
-    }
-
-    .node .body {
-        padding: 0 12px 12px;
-        color: #435169;
-        font-size: 13px;
-        line-height: 1.5
-    }
-
-    .node .close {
-        position: absolute;
-        right: 8px;
-        top: 6px;
-        font-weight: 700;
-        border: none;
-        background: transparent;
-        color: #7b88a8;
-        cursor: pointer;
-    }
-
-    /* 種別色 */
-    .node.onu {
-        border-color: #7fb3ff
-    }
-
-    .node.router {
-        border-color: #35c2a1
-    }
-
-    .node.pc, .node.web, .node.dns, .node.db, .node.mail {
-        border-color: #7a8b9a
-    }
-
-    .node.fw {
-        border-color: #f3aa5a
-    }
-
-/* アンカー */
-.anchor {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-    background: #10b981; /* LAN 緑 */
-    box-shadow: 0 0 0 1px #0f766e inset;
+.node.dragging {
+    cursor: grabbing;
+    opacity: 0.9;
 }
 
-    .anchor.wan {
-        background: #f59e0b;
-        box-shadow: 0 0 0 1px #b45309 inset
-    }
-    /* WAN 橙 */
-    .anchor:hover {
-        transform: scale(1.15)
-    }
-
-/* アンカー位置 */
-.node.onu .anchor.rj {
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: -6px
-}
-
-.node.router .anchor.wan {
-    left: -6px;
-    top: 50%;
-    transform: translateY(-50%)
-}
-
-.node.router .anchor.rj {
-    right: -6px;
-    top: 50%;
-    transform: translateY(-50%)
-}
-
-.node.dev .anchor.rj {
-    left: -6px;
-    top: 50%;
-    transform: translateY(-50%)
-}
-
-/* ケーブル */
-.cable {
-    stroke-width: 3;
-    fill: none
-}
-
-    .cable.rj45 {
-        stroke: #10b981
-    }
-    /* RJ45 緑 */
-    .cable.fiber {
-        stroke: #f59e0b;
-        stroke-dasharray: 6 6
-    }
-    /* 光 橙 破線 */
-    .cable.selected {
-        filter: drop-shadow(0 0 6px rgba(0,0,0,.25))
-    }
-
-/* 光アンカー */
-.fiber-dot {
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #1b5cff;
-    color: #fff;
+.node-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
     font-weight: 700;
-    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+
+.node-delete {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+.node-body {
+    padding: 0 12px 12px 12px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.node-ports {
+    display: flex;
+    gap: 6px;
+    padding: 0 12px 12px;
+}
+
+.port {
+    flex: 1;
+    border-radius: 999px;
+    border: none;
+    color: #fff;
+    padding: 6px 0;
+    font-size: 0.8rem;
     cursor: pointer;
 }
 
-/* 汎用 */
-.hidden {
-    display: none !important
-}
+.port-fiber { background: #10b981; }
+.port-rj45 { background: #6366f1; }
+.port.selected { box-shadow: 0 0 0 3px rgba(255,255,255,0.6) inset; }
 
-.row {
+.stage-header,
+.stage-footer {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
 }
 
-.btn {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #cfd4e6;
-    background: #fff;
+.stage-footer {
+    font-size: 0.9rem;
+    color: #475569;
 }
 
-    .btn.ghost {
-        background: #f6f8fc
-    }
+.cable {
+    stroke-width: 4;
+    stroke-linecap: round;
+}
 
-    .btn.danger {
-        border-color: #ff9aa2;
-        color: #b01a1a
-    }
+.cable.fiber {
+    stroke: #10b981;
+    stroke-dasharray: 6 4;
+}
+
+.cable.rj45 {
+    stroke: #2563eb;
+}

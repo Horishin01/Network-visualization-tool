@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open site in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:8080/index.html",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "python: serve (http://localhost:8080)",
+      "presentation": {
+        "group": "network-tool",
+        "order": 1,
+        "hidden": false
+      }
+    },
+    {
+      "name": "Open site in Edge",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:8080/index.html",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "python: serve (http://localhost:8080)",
+      "presentation": {
+        "group": "network-tool",
+        "order": 2,
+        "hidden": false
+      }
+    }
+  ]
+}

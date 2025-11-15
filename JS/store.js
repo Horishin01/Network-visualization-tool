@@ -1,83 +1,120 @@
-/* =========================================================
- *  AppStore (localStorage / sessionStorage ÉÜÅ[ÉeÉBÉäÉeÉB)
- *  - ÉXÉLÅ[É}: { v, updatedAt, home:{reach}, company:{reach}, summary:{homeOK, companyOK} }
- *  - égÇ¢ï˚:
- *      AppStore.get(), AppStore.patch(mutator), AppStore.clear()
- *      AppStore.readSummary() -> {homeOK, companyOK}
- *      AppStore.saveDraft(scope, data), loadDraft(scope), clearDraft(scope)
+Ôªø/* =========================================================
+ * store.js  AppStore (localStorage / sessionStorage „É©„ÉÉ„Éë)
+ * Â§âÊõ¥ÁÇπ:
+ *  - set/patch/clear ÊôÇ„Å´ BroadcastChannel „Å® CustomEvent „ÅßÊõ¥Êñ∞ÈÄöÁü•
  * ========================================================= */
 (function (global) {
     'use strict';
 
-    const KEY = 'app:network:saves:default';
-    const V = 1;
+    const PREFIX = '[STORE]';
+    const DEF = Object.freeze({
+        v: 0,
+        updatedAt: new Date(0).toISOString(),
+        home:    { edges:{ fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 } },
+        company: {},
+        summary: { homeOK:false, companyOK:false }
+    });
 
-    const safeParse = (raw) => {
-        try { return JSON.parse(raw); } catch { return null; }
+    const BC_NAME = 'network-app';
+    function broadcast(){
+        try { const ch = new BroadcastChannel(BC_NAME); ch.postMessage({ type:'store-updated', at: Date.now() }); ch.close(); } catch {}
+        try { window.dispatchEvent(new CustomEvent('appstore:updated', { detail:{ at: Date.now() } })); } catch {}
+    }
+
+    function nowISO(){ return new Date().toISOString(); }
+    function clone(x){ return JSON.parse(JSON.stringify(x)); }
+
+    const AppStore = {
+        _conf: { key:'app:network:saves:default', version:1, scope:'local', importOnStart:false },
+        _storage: window.localStorage,
+
+        configure(conf){
+            this._conf = Object.assign({}, this._conf, conf || {});
+            this._storage = (this._conf.scope==='session') ? window.sessionStorage : window.localStorage;
+            console.error(`${PREFIX} configure: key=${this._conf.key} v=${this._conf.version} scope=${this._conf.scope}`);
+            try { this.get(); } catch(e){
+                console.error(`${PREFIX} parse error -> clear and reinit`, e);
+                this._storage.removeItem(this._conf.key);
+            }
+            this._ensureRoot();
+        },
+
+        _ensureRoot(){
+            let cur = this._rawRead();
+            if (!cur){
+                const init = clone(DEF);
+                init.v = this._conf.version;
+                init.updatedAt = nowISO();
+                this._rawWrite(init);
+                broadcast();
+                return init;
+            }
+            if (typeof cur.v !== 'number' || cur.v !== this._conf.version){
+                cur.v = this._conf.version;
+                cur.updatedAt = nowISO();
+                this._rawWrite(cur);
+                broadcast();
+            }
+            let patched = false;
+            if (!cur.home)    { cur.home    = clone(DEF.home);    patched = true; }
+            if (!cur.company) { cur.company = clone(DEF.company); patched = true; }
+            if (!cur.summary) { cur.summary = clone(DEF.summary); patched = true; }
+            if (patched){
+                cur.updatedAt = nowISO();
+                this._rawWrite(cur);
+                broadcast();
+            }
+            return cur;
+        },
+
+        _rawRead(){
+            const s = this._storage.getItem(this._conf.key);
+            if (!s) return null;
+            return JSON.parse(s);
+        },
+        _rawWrite(obj){ this._storage.setItem(this._conf.key, JSON.stringify(obj)); },
+
+        get(){
+            const o = this._rawRead();
+            return o ? clone(o) : null;
+        },
+        set(obj){
+            const next = clone(obj);
+            next.v = this._conf.version;
+            next.updatedAt = nowISO();
+            this._rawWrite(next);
+            broadcast();
+            return clone(next);
+        },
+        patch(mutator){
+            const base = this._ensureRoot();
+            const draft = clone(base);
+            const ret = (typeof mutator === 'function') ? mutator(draft) : undefined;
+            const next = (ret && typeof ret === 'object') ? ret : draft;
+            next.v = this._conf.version;
+            next.updatedAt = nowISO();
+            this._rawWrite(next);
+            broadcast();
+            return clone(next);
+        },
+        clear(){
+            this._storage.removeItem(this._conf.key);
+            console.error(`${PREFIX} cleared`);
+            broadcast();
+        },
+        readSummary(){
+            const o = this._ensureRoot();
+            const s = o.summary || DEF.summary;
+            return { homeOK: !!s.homeOK, companyOK: !!s.companyOK };
+        },
+        saveDraft(scope, data){
+            if (!scope || typeof data !== 'object'){ console.error(`${PREFIX} saveDraft invalid args`); return this.get(); }
+            return this.patch(d => {
+                if (!d[scope]) d[scope] = {};
+                Object.assign(d[scope], clone(data));
+            });
+        }
     };
 
-    function get() {
-        const raw = localStorage.getItem(KEY);
-        if (!raw) return null;
-        const obj = safeParse(raw);
-        return obj && obj.v === V ? obj : null;
-    }
-
-    function set(val) {
-        localStorage.setItem(KEY, JSON.stringify(val));
-    }
-
-    function deepClone(obj) {
-        if (typeof structuredClone === 'function') return structuredClone(obj);
-        return safeParse(JSON.stringify(obj));
-    }
-
-    /** ä˘ë∂ílÇ…ëŒÇµÇƒïœçXÇâ¡Ç¶Çƒï€ë∂Åië∂ç›ÇµÇ»ÇØÇÍÇŒêóå`Ç≈çÏê¨Åj */
-    function patch(mutator) {
-        const cur = get() || { v: V };
-        const base = deepClone(cur) || { v: V };
-        const next = mutator ? (mutator(base) || base) : base;
-        next.v = V;
-        next.updatedAt = new Date().toISOString();
-        set(next);
-        return next;
-    }
-
-    function clear() {
-        localStorage.removeItem(KEY);
-    }
-
-    function readSummary() {
-        const s = get();
-        return {
-            homeOK: !!s?.summary?.homeOK,
-            companyOK: !!s?.summary?.companyOK
-        };
-    }
-
-    // ---- Draft APIs (çÏã∆íÜÇÕ sessionStorage Ç…ï€ë∂) ----
-    const DRAFT_PREFIX = 'app:network:session:';
-
-    function saveDraft(scope, data) {
-        const payload = { v: V, updatedAt: new Date().toISOString(), ...data };
-        sessionStorage.setItem(DRAFT_PREFIX + scope, JSON.stringify(payload));
-        return payload;
-    }
-
-    function loadDraft(scope) {
-        const raw = sessionStorage.getItem(DRAFT_PREFIX + scope);
-        return raw ? safeParse(raw) : null;
-    }
-
-    function clearDraft(scope) {
-        sessionStorage.removeItem(DRAFT_PREFIX + scope);
-    }
-
-    // åˆäJ
-    global.AppStore = {
-        KEY, V,
-        get, set, patch, clear,
-        readSummary,
-        saveDraft, loadDraft, clearDraft
-    };
+    global.AppStore = AppStore;
 })(window);
