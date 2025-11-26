@@ -17,7 +17,7 @@
         v: 1,
         updatedAt: new Date(0).toISOString(),
         home:    { edges:{ fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 } },
-        company: { edges:{ fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 }, canvas:null },
+        company: { edges:{ fiberOnu:false, onuRouter:false, routerPc:false, routerFtp:false }, reach:{ internet:false, count:0 }, status:{ fiberLink:false, routerWanLink:false, webReachable:false, ftpReachable:false, lanClients:0 }, canvas:null },
         summary: { homeOK:false, companyOK:false }
     });
 
@@ -46,9 +46,20 @@
                 });
                 cur = AppStore.get();
             }
+            if (typeof e.routerFtp === 'undefined'){
+                AppStore.patch(d => {
+                    const src = d.company.edges || {};
+                    d.company.edges = Object.assign({}, src, { routerFtp:false });
+                });
+                cur = AppStore.get();
+            }
         }
         if (!cur.company.reach){
             AppStore.patch(d => { d.company = d.company || {}; d.company.reach = clone(DEF_STATE.company.reach); });
+            cur = AppStore.get();
+        }
+        if (!cur.company.status){
+            AppStore.patch(d => { d.company = d.company || {}; d.company.status = clone(DEF_STATE.company.status); });
             cur = AppStore.get();
         }
         if (!cur.summary){ AppStore.patch(d => { d.summary = clone(DEF_STATE.summary); }); cur = AppStore.get(); }
@@ -61,16 +72,26 @@
         const next = {
             fiberOnu:  !!edges.fiberOnu,
             onuRouter: !!edges.onuRouter,
-            routerPc:  !!edges.routerPc
+            routerPc:  !!edges.routerPc,
+            routerFtp: !!edges.routerFtp
         };
+        const snap = AppStore.get();
         const reach = {
             internet: next.fiberOnu && next.onuRouter && next.routerPc,
             count: (next.fiberOnu?1:0) + (next.onuRouter?1:0) + (next.routerPc?1:0)
         };
+        const status = Object.assign({}, snap?.company?.status || {}, {
+            fiberLink: next.fiberOnu,
+            routerWanLink: next.onuRouter,
+            webReachable: next.routerPc,
+            ftpReachable: next.routerFtp && (next.fiberOnu && next.onuRouter),
+            lanClients: snap?.company?.status?.lanClients || 0
+        });
         AppStore.patch(d => {
             d.company = d.company || {};
             d.company.edges = next;
             d.company.reach = reach;
+            d.company.status = status;
             d.summary = d.summary || {};
             d.summary.companyOK = reach.internet;
         });
