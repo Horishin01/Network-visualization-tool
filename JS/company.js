@@ -21,14 +21,15 @@
 
     // ノード定義
     const NODE_DEFS = {
-        onu:    { label:'ONU',          description:'光回線終端装置', ports:[{id:'fiber',kind:'fiber',label:'光'}, {id:'lan',kind:'rj45',label:'LAN'}] },
-        router: { label:'社内ルーター', description:'WAN/LANポート',   ports:[{id:'wan',  kind:'rj45',label:'WAN'}, {id:'lan',kind:'rj45',label:'LAN'}] },
-        web:    { label:'Webサーバー',  description:'社内公開用',       ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
-        pc:     { label:'社員PC',        description:'クライアント端末',  ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
-        dns:    { label:'DNS',           description:'名前解決確認',      ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
-        db:     { label:'DB',            description:'任意',              ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
-        mail:   { label:'Mail',          description:'任意',              ports:[{id:'lan',kind:'rj45',label:'LAN'}] }
-    };
+    onu:    { label:'ONU',          description:'Optical terminal (ONU)', ports:[{id:'fiber',kind:'fiber',label:'FIBER'}, {id:'lan',kind:'rj45',label:'LAN'}] },
+    router: { label:'Router',       description:'WAN / LAN gateway',      ports:[{id:'wan',  kind:'rj45',label:'WAN'}, {id:'lan',kind:'rj45',label:'LAN'}] },
+    web:    { label:'Web Server',   description:'Internal publishing',    ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
+    ftp:    { label:'FTP Server',   description:'Upload destination',     ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
+    pc:     { label:'Client PC',    description:'User endpoint',          ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
+    dns:    { label:'DNS',          description:'Name resolution',        ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
+    db:     { label:'DB',           description:'Optional',               ports:[{id:'lan',kind:'rj45',label:'LAN'}] },
+    mail:   { label:'Mail',         description:'Optional',               ports:[{id:'lan',kind:'rj45',label:'LAN'}] }
+};
 
     const state = {
         nodes: {},                // id -> node
@@ -311,13 +312,15 @@
             const bType = conn.b.nodeId==='fiber' ? 'fiber' : state.nodes[conn.b.nodeId]?.type;
             return (aType==='fiber' && bType==='onu') || (aType==='onu' && bType==='fiber');
         });
-        // RJ45 グラフ
+        // RJ45 graph
         const graph = buildRj45Graph();
         const onuRouter = hasTypePath(graph, 'onu', 'router');
-        // 修正: router→pc を正、互換で router→web も許容
+        // router->pc ?????? router->web ???
         const routerPc = hasTypePath(graph, 'router', 'pc') || hasTypePath(graph, 'router', 'web');
+        // router->ftp ? FTP ???????
+        const routerFtp = hasTypePath(graph, 'router', 'ftp');
 
-        return { fiberOnu, onuRouter, routerPc };
+        return { fiberOnu, onuRouter, routerPc, routerFtp };
     }
     function buildRj45Graph(){
         const g = new Map();
@@ -355,15 +358,24 @@
         try{ localStorage.setItem(STORAGE_KEY_EDGES, json); }
         catch(e){ console.warn('[COMPANY] edge save failed', e); }
 
-        // 橋渡し（AppStore）— 判定 → 保存 の順で直列化
         const ok = edges.fiberOnu && edges.onuRouter && edges.routerPc;
+        const ftpOK = ok && edges.routerFtp;
+        const reach = { internet: ok, count: (edges.fiberOnu?1:0)+(edges.onuRouter?1:0)+(edges.routerPc?1:0) };
+
         if (global.CompanyEdges && typeof CompanyEdges.set==='function'){
             CompanyEdges.set(edges);
         } else if (global.AppStore && typeof AppStore.patch==='function'){
             AppStore.patch(d=>{
                 d.company = d.company || {};
                 d.company.edges = Object.assign({}, edges);
-                d.company.reach = { internet: ok, count: (edges.fiberOnu?1:0)+(edges.onuRouter?1:0)+(edges.routerPc?1:0) };
+                d.company.reach = reach;
+                d.company.status = Object.assign({}, d.company.status, {
+                    fiberLink: edges.fiberOnu,
+                    routerWanLink: edges.onuRouter,
+                    webReachable: edges.routerPc,
+                    ftpReachable: ftpOK,
+                    lanClients: Object.values(state.nodes).filter(n => n.type && n.type !== 'onu' && n.type !== 'router').length
+                });
                 d.summary = d.summary || {}; d.summary.companyOK = ok;
             });
         }

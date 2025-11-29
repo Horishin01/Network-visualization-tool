@@ -87,13 +87,38 @@
                                 <p>会社ネットワークで ONU→ルーター→Webサーバー が接続されると、ここに社内画面を読み込みます。</p>
                             </div>
                             <iframe class="preview-iframe" id="companyPreview" title="company preview" loading="lazy" hidden></iframe>
+                            
                             <div class="ftp-state">
-                                <span>FTPサーバーアクセス:</span>
+                                <span>FTP????????:</span>
                                 <span id="ftpStatus" class="badge badge-ng">F</span>
                             </div>
-                            <div class="pc-links">
-                                <a class="btn ghost" href="./company.html" target="_blank" rel="noreferrer">会社シミュレータを開く</a>
+                            <div id="ftpConsole" class="ftp-console" hidden>
+                                <div class="ftp-console__header">
+                                    <p class="note">????????? T ????????????????? HTML ? 3 ????????????????</p>
+                                    <label class="btn ghost">
+                                        ????????
+                                        <input id="ftpInlineFile" type="file" accept=".html,.htm,.txt" hidden />
+                                    </label>
+                                </div>
+                                <div id="ftpSlots" class="ftp-console__slots"></div>
+                                <div class="ftp-console__controls">
+                                    <label>
+                                        <span>????????</span><br />
+                                        <select id="ftpUploadSelect"></select>
+                                    </label>
+                                    <button id="ftpAssignBtn" type="button" class="btn primary">??????????</button>
+                                </div>
+                                <div class="ftp-preview">
+                                    <div class="ftp-preview__head">
+                                        <strong id="ftpPreviewLabel">?????</strong>
+                                    </div>
+                                    <iframe id="ftpPreview" title="FTP preview"></iframe>
+                                </div>
                             </div>
+                            <div class="pc-links">
+                                <a class="btn ghost" href="./company.html" target="_blank" rel="noreferrer">???????????</a>
+                            </div>
+
                         </div>
                     </div>
 <!-- 保存・診断 -->
@@ -122,6 +147,10 @@
     <footer>
         <p>&copy; 2025 ネットワーク学習プロジェクト. All Rights Reserved.</p>
     </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
