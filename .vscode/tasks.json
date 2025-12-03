@@ -15,21 +15,19 @@
         "cwd": "${workspaceFolder}"
       },
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "custom",
-          "pattern": [
-            {
-              "regexp": "^(.*)$"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".*",
-            "endsPattern": "Serving HTTP on"
-          }
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^\\s*(?:([^:]+):\\d+:\\d+:\\s+)?(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Serving HTTP on"
         }
-      ],
+      },
       "detail": "Serve the static files using python -m http.server 8080."
     },
     {
@@ -38,21 +36,19 @@
       "label": "npm: dev",
       "detail": "Start the Vite dev server for local development.",
       "isBackground": true,
-      "problemMatcher": [
-        {
-          "owner": "custom",
-          "pattern": [
-            {
-              "regexp": "^(.*)$"
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": "^\\s*>\\s*vite",
-            "endsPattern": "Local:\\s+http://localhost:5173/?"
-          }
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^\\s*(?:([^:]+):\\d+:\\d+:\\s+)?(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*>\\s*vite",
+          "endsPattern": "Local:\\s+http://localhost:5173/?"
         }
-      ]
+      }
     },
     {
       "type": "npm",

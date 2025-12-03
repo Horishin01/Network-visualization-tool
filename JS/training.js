@@ -32,12 +32,12 @@
         ftpUploadSelect.innerHTML = '';
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = ftpConsoleEnabled ? '--- ??????????? ---' : '????????? T ???????';
+        placeholder.textContent = ftpConsoleEnabled ? '--- アップロードを選択 ---' : '会社側を T にすると解禁';
         ftpUploadSelect.appendChild(placeholder);
         if (!ftpUploads.length) {
             const opt = document.createElement('option');
             opt.value = '';
-            opt.textContent = '??????????????';
+            opt.textContent = 'アップロードがありません';
             ftpUploadSelect.appendChild(opt);
         } else {
             ftpUploads.forEach((u) => {
@@ -67,13 +67,13 @@
                         <div class="ftp-slot__title">${site.label}</div>
                         <div class="ftp-slot__hint">${site.hint}</div>
                     </div>
-                    <span class="badge ${entry ? 'badge-ok' : 'badge-ng'}">${entry ? '???' : '???'}</span>
+                    <span class="badge ${entry ? 'badge-ok' : 'badge-ng'}">${entry ? 'OK' : '空'}</span>
                 </div>
                 <div class="ftp-slot__body">
-                    <div class="ftp-slot__file">${entry ? entry.name : '???????'}</div>
+                    <div class="ftp-slot__file">${entry ? entry.name : '未割り当て'}</div>
                     <div class="ftp-slot__actions">
-                        <button data-action="select" data-slot="${id}" ${ftpConsoleEnabled ? '' : 'disabled'}>??????</button>
-                        <button data-action="preview" data-slot="${id}" ${entry && ftpConsoleEnabled ? '' : 'disabled'}>?????</button>
+                        <button data-action="select" data-slot="${id}" ${ftpConsoleEnabled ? '' : 'disabled'}>選択</button>
+                        <button data-action="preview" data-slot="${id}" ${entry && ftpConsoleEnabled ? '' : 'disabled'}>プレビュー</button>
                     </div>
                 </div>`;
             ftpSlotsEl.appendChild(card);
@@ -83,7 +83,7 @@
     function previewSlot(slotId) {
         const entry = pickUpload(ftpDeploy[slotId]);
         if (!entry) {
-            showToast('???????????');
+            showToast('このスロットにファイルがありません');
             return;
         }
         if (ftpPreviewUrl) {
@@ -93,7 +93,7 @@
         ftpPreviewUrl = URL.createObjectURL(new Blob([entry.content], { type: entry.type || 'text/html' }));
         if (ftpPreview) ftpPreview.src = ftpPreviewUrl;
         if (ftpPreviewLabel) ftpPreviewLabel.textContent = `${slotLabel(slotId)}: ${entry.name}`;
-        showToast(`${slotLabel(slotId)} ??????????`);
+        showToast(`${slotLabel(slotId)} を表示しました`);
     }
 
     function slotLabel(id) {
@@ -118,7 +118,7 @@
         ftpUploads.unshift(entry);
         saveUploads(ftpUploads);
         if (ftpInlineFile) ftpInlineFile.value = '';
-        showToast(`${file.name} ???FTP???????`);
+        showToast(`${file.name} を仮想FTPに追加しました`);
         renderFtpPanel(lastCompanyOK, lastCompanyStatus?.ftpReachable);
     }
 
@@ -408,7 +408,7 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
     }
 
 
-    // ---- ?????? ----
+    // ---- 初期化 ----
     ftpUploads = loadUploads();
     ftpDeploy = loadDeployments();
     renderFromStore(true);
@@ -437,11 +437,11 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
             if (!slot) return;
             selectedSlot = slot;
             if (btn.dataset.action === 'preview') {
-                if (!ftpConsoleEnabled) { showToast('????????? T ???????'); return; }
+                if (!ftpConsoleEnabled) { showToast('会社側を T にすると利用できます'); return; }
                 previewSlot(slot);
             } else if (btn.dataset.action === 'select') {
-                if (!ftpConsoleEnabled) { showToast('????????? T ???????'); return; }
-                showToast(`${slotLabel(slot)} ??????????`);
+                if (!ftpConsoleEnabled) { showToast('会社側を T にすると利用できます'); return; }
+                showToast(`${slotLabel(slot)} を選択しました`);
             }
             renderFtpPanel(lastCompanyOK, lastCompanyStatus?.ftpReachable);
         });
@@ -449,17 +449,17 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
 
     if (ftpAssignBtn) {
         ftpAssignBtn.addEventListener('click', () => {
-            if (!ftpConsoleEnabled) { showToast('????????? T ???????'); return; }
+            if (!ftpConsoleEnabled) { showToast('会社側を T にすると利用できます'); return; }
             const uploadId = ftpUploadSelect?.value;
             const entry = pickUpload(uploadId);
             if (!uploadId || !entry) {
-                showToast('?????????????????');
+                showToast('アップロード済みファイルを選んでください');
                 return;
             }
             ftpDeploy = Object.assign({}, ftpDeploy, { [selectedSlot]: uploadId });
             saveDeployments(ftpDeploy);
             renderFtpPanel(lastCompanyOK, lastCompanyStatus?.ftpReachable);
-            showToast(`${slotLabel(selectedSlot)} ? ${entry.name} ???????`);
+            showToast(`${slotLabel(selectedSlot)} に ${entry.name} を割り当てました`);
         });
     }
 
