@@ -46,6 +46,14 @@
     gap: 12px;
     align-items: center;
 }
+.hero-actions .status.ftp {
+    background: #0ea5e9;
+    color: #e0f2fe;
+}
+.hero-actions .status.ftp.on {
+    background: #22d3ee;
+    color: #0f172a;
+}
 
 .badge.status {
     font-size: 1.2rem;

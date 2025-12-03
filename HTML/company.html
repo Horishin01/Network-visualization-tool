@@ -24,9 +24,11 @@
             <div>
                 <h2>Office Network Builder</h2>
                 <p>ONU と社内ルーター、Web サーバー、内部端末をドラッグ＆ドロップで配置し、光ファイバーと RJ45 ケーブルで配線します。光 → ONU → ルーター → Web サーバーの 3 本が揃うとトレーニング画面の会社判定も T になります。</p>
+                <p class="hint">FTP 判定: 光 → ONU → ルーター → FTP サーバー が揃うと FTP バッジが T になり、トレーニング画面の FTP コンソールが開きます。</p>
             </div>
             <div class="hero-actions">
                 <span class="badge status" id="companyStatusBadge">F</span>
+                <span class="badge status ftp" id="ftpStatusBadge" title="FTP接続判定">FTP:F</span>
                 <button id="btnClearAll" class="btn ghost">全ノード削除</button>
             </div>
         </section>

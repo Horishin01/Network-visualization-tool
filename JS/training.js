@@ -197,7 +197,7 @@
             v: 1,
             updatedAt: new Date().toISOString(),
             home:    { edges: { fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 } },
-            company: { edges:{ fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 }, status:{ ftpReachable:false }, canvas:null },
+            company: { edges:{ fiberOnu:false, onuRouter:false, routerPc:false, routerFtp:false }, reach:{ internet:false, count:0 }, status:{ ftpReachable:false }, canvas:null },
             summary: { homeOK:false, companyOK:false }
         };
         if (window.AppStore && typeof AppStore.set === 'function') {
@@ -220,7 +220,7 @@
         const fiberEdge  = typeof ce.fiberOnu   === 'boolean' ? ce.fiberOnu   : !!ce.fiber;
         const routerEdge = typeof ce.onuRouter  === 'boolean' ? ce.onuRouter  : !!ce.routerWan;
         const clientEdge = typeof ce.routerPc   === 'boolean' ? ce.routerPc   : !!ce.routerWeb;
-        const ftpEdge    = typeof ce.routerFtp  === 'boolean' ? ce.routerFtp  : false;
+        const ftpEdge    = typeof ce.routerFtp  === 'boolean' ? ce.routerFtp  : !!ce.ftp;
 
         const homeOK =
             (typeof s?.summary?.homeOK === 'boolean')
@@ -236,10 +236,8 @@
 
         // 会社側の補助ステータス（表示用）
         const companyStatus = Object.assign({}, s?.company?.status);
-        const ftpReachable =
-            (typeof companyStatus?.ftpReachable === 'boolean')
-                ? companyStatus.ftpReachable
-                : (fiberEdge && routerEdge && ftpEdge);
+        // FTP 判定は現行配線から再計算し、保存済みステータスに依存しない
+        const ftpReachable = fiberEdge && routerEdge && ftpEdge;
         companyStatus.fiberLink    = fiberEdge;
         companyStatus.routerWanLink= routerEdge;
         companyStatus.webReachable = clientEdge;
@@ -338,6 +336,7 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
                 homeEdges: st.he,
                 homeOK: st.homeOK,
                 companyOK: st.companyOK,
+                ftpReachable: !!st.companyStatus?.ftpReachable,
                 updatedAt: snap?.updatedAt
             });
         }

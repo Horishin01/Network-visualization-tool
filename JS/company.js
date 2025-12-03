@@ -47,6 +47,7 @@
     const palette      = document.getElementById('companyPalette');
     const toolButtons  = document.querySelectorAll('.tool-btn');
     const statusBadge  = document.getElementById('companyStatusBadge');
+    const ftpBadge     = document.getElementById('ftpStatusBadge');
     const dnsForm      = document.getElementById('dnsCheckForm');
     const dnsInput     = document.getElementById('dnsHost');
     const dnsResult    = document.getElementById('dnsResult');
@@ -351,15 +352,16 @@
     function syncConnectivity(reason='update', opts={}){
         const { force=false } = opts;
         const edges = computeEdges();
+        const ok = edges.fiberOnu && edges.onuRouter && edges.routerPc;
+        // FTP 判定: 光→ONU→ルーター→FTP サーバーがつながれば到達とみなす（PC への配線は不要）
+        const ftpOK = edges.fiberOnu && edges.onuRouter && edges.routerFtp;
         const json  = JSON.stringify(edges);
         const prev  = localStorage.getItem(STORAGE_KEY_EDGES);
-        if (!force && json===prev){ updateBadge(edges); return; }
+        if (!force && json===prev){ updateBadge(edges, ftpOK); return; }
 
         try{ localStorage.setItem(STORAGE_KEY_EDGES, json); }
         catch(e){ console.warn('[COMPANY] edge save failed', e); }
 
-        const ok = edges.fiberOnu && edges.onuRouter && edges.routerPc;
-        const ftpOK = ok && edges.routerFtp;
         const reach = { internet: ok, count: (edges.fiberOnu?1:0)+(edges.onuRouter?1:0)+(edges.routerPc?1:0) };
 
         if (global.CompanyEdges && typeof CompanyEdges.set==='function'){
@@ -379,14 +381,20 @@
                 d.summary = d.summary || {}; d.summary.companyOK = ok;
             });
         }
-        updateBadge(edges);
+        updateBadge(edges, ftpOK);
         emitDebugSnapshot(`sync:${reason}`, { edges, force });
     }
-    function updateBadge(edges){
-        if (!statusBadge) return;
-        const ok = edges.fiberOnu && edges.onuRouter && edges.routerPc;
-        statusBadge.textContent = ok ? 'T' : 'F';
-        statusBadge.classList.toggle('on', ok);
+    function updateBadge(edges, ftpOK){
+        if (statusBadge){
+            const ok = edges.fiberOnu && edges.onuRouter && edges.routerPc;
+            statusBadge.textContent = ok ? 'T' : 'F';
+            statusBadge.classList.toggle('on', ok);
+        }
+        if (ftpBadge){
+            const showOK = !!ftpOK;
+            ftpBadge.textContent = `FTP:${showOK ? 'T' : 'F'}`;
+            ftpBadge.classList.toggle('on', showOK);
+        }
     }
 
     // ========== DNS ==========
