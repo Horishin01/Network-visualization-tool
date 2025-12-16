@@ -7,6 +7,18 @@
 (function () {
     'use strict';
 
+    const INSTALL_KEY = 'training:installChecklist:v1';
+    const INSTALL_ITEMS = [
+        { id: 'vpn', label: 'VPN クライアント', desc: '社外から社内へ安全に入るための必須ソフト' },
+        { id: 'fw', label: 'FW ポリシー', desc: '境界FWのルールセットをPCへ同期' },
+        { id: 'diag', label: 'ネットワーク診断', desc: 'ping/traceroute で経路を確認' },
+        { id: 'browser', label: '業務ブラウザ', desc: '社内ポータル用のブックマーク付き' }
+    ];
+
+    let selectedNode = 'home';
+    let installState = loadInstallState();
+    let lastDerivedState = null;
+
 
     function renderFtpPanel(companyOK, ftpOnline) {
         if (!ftpConsole) return;
@@ -129,7 +141,8 @@
         minZoom: INITIAL_Z,
         maxZoom: 12,
         maxBounds: JAPAN_BOUNDS,
-        maxBoundsViscosity: 1.0
+        maxBoundsViscosity: 1.0,
+        doubleClickZoom: false
     }).setView([36.5, 137.0], INITIAL_Z);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -139,14 +152,27 @@
 
     const tokyo = L.marker([35.6812, 139.7671], { title: 'Tokyo' })
         .addTo(map).bindTooltip('Home', { direction: 'top', offset: [0, -8] })
-        .on('click', () => location.href = 'home.html');
+        .on('click', () => selectNode('home'))
+        .on('dblclick', () => window.open('home.html', '_blank', 'noreferrer'));
 
     const fukuoka = L.marker([33.5902, 130.4017], { title: 'Fukuoka' })
         .addTo(map).bindTooltip('Company', { direction: 'top', offset: [0, -8] })
-        .on('click', () => location.href = 'company.html');
+        .on('click', () => selectNode('company'))
+        .on('dblclick', () => window.open('company.html', '_blank', 'noreferrer'));
 
     // ---- DOM 取得 ----
     const diagEl         = document.getElementById('diag');
+    const focusBadge     = document.getElementById('focusBadge');
+    const detailBadge    = document.getElementById('detailBadge');
+    const detailTitle    = document.getElementById('detailTitle');
+    const detailSummary  = document.getElementById('detailSummary');
+    const detailList     = document.getElementById('detailList');
+    const detailOpenBtn  = document.getElementById('detailOpenBtn');
+    const detailRefresh  = document.getElementById('detailRefresh');
+    const segmentOutside = document.getElementById('segmentOutside');
+    const segmentFirewall= document.getElementById('segmentFirewall');
+    const segmentInside  = document.getElementById('segmentInside');
+    const installListEl  = document.getElementById('installList');
     const pcBadge        = document.getElementById('pcConnBadge');
     const pcScreen       = document.getElementById('pcScreen');
     const pcAddress      = document.getElementById('pcAddress');
@@ -262,6 +288,112 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
         el.classList.toggle('off', !ok);
     }
 
+    function setSegmentState(el, ok, text) {
+        if (!el) return;
+        el.textContent = text;
+        const block = el.closest('.segment-block');
+        if (!block) return;
+        block.classList.toggle('state-ok', ok);
+        block.classList.toggle('state-ng', !ok);
+    }
+
+    function buildDetail(kind, st) {
+        const status = st?.companyStatus || {};
+        const lanCount = typeof status.lanClients === 'number' ? status.lanClients : 0;
+        if (kind === 'company') {
+            return {
+                title: '社内セグメント / サーバ群',
+                ok: !!status.ok,
+                summary: '会社の内側と外側を分離し、FW/ルーター経由でのみサーバへ到達させます。',
+                items: [
+                    `境界: 光${status.fiberLink ? 'OK' : 'NG'} / WAN${status.routerWanLink ? 'OK' : 'NG'} / LAN${status.webReachable ? 'OK' : 'NG'}`,
+                    `LAN クライアント: ${lanCount} 台 (社員PC + サーバ群)`,
+                    `FTP: ${status.ftpReachable ? '到達 (アップロード可)' : '未到達 (境界を構成してください)'}`,
+                    '会社内の画面プレビューや FTP コンソールは配線が揃うと解禁されます。'
+                ],
+                actionHref: 'company.html',
+                actionLabel: '会社シミュレータを開く'
+            };
+        }
+        if (kind === 'firewall') {
+            const outside = status.fiberLink ? '外側 (ISP) から光OK' : '外側が未接続';
+            const inside = status.webReachable ? '内側のサーバに到達可能' : '内側が未構築';
+            return {
+                title: '境界 / FW・ルーター',
+                ok: !!(status.fiberLink && status.routerWanLink),
+                summary: '社内と社外を分離し、FW でトラフィックを制御する妥当性を可視化します。',
+                items: [
+                    outside,
+                    `FW/WAN: ${status.routerWanLink ? '稼働中 (WANリンクあり)' : '未構成 (WAN未接続)'}`,
+                    inside,
+                    '必要に応じて FW ポリシーや VPN クライアントを PC 側へ配布してください。'
+                ],
+                actionHref: 'company.html',
+                actionLabel: '境界設定を確認'
+            };
+        }
+        const he = st?.he || {};
+        return {
+            title: '自宅セグメント / Home PC',
+            ok: !!(st?.homeOK && st?.homeCount === 3),
+            summary: '家庭側の配線を整えた上で社内へアクセスする流れを確認します。',
+            items: [
+                `配線: ${st?.homeCount || 0}/3 (光${he.fiberOnu ? 'OK' : 'NG'} / ONU${he.onuRouter ? 'OK' : 'NG'} / PC${he.routerPc ? 'OK' : 'NG'})`,
+                `ブラウザ疎通: ${st?.homeOK ? '開通 (Google 表示)' : '未到達'}`,
+                `会社側 DNS/FW: ${status.routerWanLink ? '到達候補あり' : '会社側の境界未接続'}`,
+                'ダブルクリックまたは下のボタンで自宅シミュレータを開き、配線を調整できます。'
+            ],
+            actionHref: 'home.html',
+            actionLabel: '自宅シミュレータを開く'
+        };
+    }
+
+    function renderSegments(st) {
+        const status = st?.companyStatus || {};
+        setBadgeState(focusBadge, !!(st?.homeOK && st?.companyOK));
+
+        const outsideText = status.fiberLink
+            ? '光回線 OK / 外部インターネット到達'
+            : '外部回線が未接続';
+        const firewallText = status.routerWanLink
+            ? 'FW/ルーター稼働中 (WAN 接続)'
+            : 'FW/ルーター未接続';
+        const insideText = status.webReachable
+            ? `内側サーバ到達 (LAN ${status.lanClients || 0} 台)`
+            : '内側が未構築または未配線';
+
+        setSegmentState(segmentOutside, !!status.fiberLink, outsideText);
+        setSegmentState(segmentFirewall, !!status.routerWanLink, firewallText);
+        setSegmentState(segmentInside, !!status.webReachable, insideText);
+    }
+
+    function renderDetailPanel(st) {
+        if (!detailTitle || !detailList) return;
+        const data = buildDetail(selectedNode, st || lastDerivedState || {});
+        if (!data) return;
+        detailTitle.textContent = data.title;
+        if (detailSummary) detailSummary.textContent = data.summary;
+        if (detailBadge) setBadgeState(detailBadge, !!data.ok);
+
+        detailList.innerHTML = '';
+        (data.items || []).forEach((t) => {
+            const li = document.createElement('li');
+            li.textContent = t;
+            detailList.appendChild(li);
+        });
+
+        if (detailOpenBtn) {
+            detailOpenBtn.dataset.href = data.actionHref || '';
+            detailOpenBtn.textContent = data.actionLabel || '関連画面を開く';
+        }
+    }
+
+    function selectNode(kind) {
+        selectedNode = kind || 'home';
+        renderDetailPanel(lastDerivedState);
+        showToast(`${buildDetail(selectedNode, lastDerivedState).title} を表示しました`);
+    }
+
     function showToast(message) {
         if (!ftpToast) return;
         ftpToast.textContent = message;
@@ -305,8 +437,43 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
         }
     }
 
+    function loadInstallState() {
+        try {
+            const raw = localStorage.getItem(INSTALL_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+
+    function saveInstallState(map) {
+        localStorage.setItem(INSTALL_KEY, JSON.stringify(map || {}));
+    }
+
     function pickUpload(id) {
         return ftpUploads.find((u) => u.id === id) || null;
+    }
+
+    function renderInstallList() {
+        if (!installListEl) return;
+        installListEl.innerHTML = '';
+        INSTALL_ITEMS.forEach((item) => {
+            const on = !!installState[item.id];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `install-chip ${on ? 'on' : 'off'}`;
+            btn.dataset.installId = item.id;
+            btn.innerHTML = `<strong>${item.label}</strong><small>${item.desc}</small>`;
+            btn.addEventListener('click', () => {
+                const next = !installState[item.id];
+                installState = Object.assign({}, installState, { [item.id]: next });
+                saveInstallState(installState);
+                renderInstallList();
+                showToast(`${item.label} を${next ? '導入済みにしました' : '未導入に戻しました'}`);
+            });
+            installListEl.appendChild(btn);
+        });
     }
 
     // ---- レンダリング ----
@@ -321,6 +488,7 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
         lastSnapshotJson = snapshotJson;
 
         const st = pickState(snap);
+        lastDerivedState = st;
 
         // マップのバッジ
         setTooltipAndColor(tokyo,   'Home',    `OK (${st.homeCount}/3)`, 'NG', st.homeOK);
@@ -329,6 +497,8 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
         // パネル
         renderPcWindow(st.homeCount, st.homeOK);
         renderCompanyPanel(st.companyOK, st.companyStatus);
+        renderSegments(st);
+        renderDetailPanel(st);
 
         // 診断出力
         if (diagEl) {
@@ -410,6 +580,7 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
     // ---- 初期化 ----
     ftpUploads = loadUploads();
     ftpDeploy = loadDeployments();
+    renderInstallList();
     renderFromStore(true);
 
     const driveRender = () => renderFromStore(true);
@@ -425,6 +596,9 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
             ftpUploads = loadUploads();
             ftpDeploy = loadDeployments();
             renderFtpPanel(lastCompanyOK, lastCompanyStatus?.ftpReachable);
+        } else if (e.key === INSTALL_KEY) {
+            installState = loadInstallState();
+            renderInstallList();
         }
     });
 
@@ -468,6 +642,30 @@ return { he, homeOK: !!homeOK, companyOK: !!companyOK, homeCount, companyStatus 
             if (file) addInlineUpload(file);
         });
     }
+
+    if (detailOpenBtn) {
+        detailOpenBtn.addEventListener('click', () => {
+            const data = buildDetail(selectedNode, lastDerivedState);
+            if (data?.actionHref) {
+                window.open(data.actionHref, '_blank', 'noreferrer');
+            } else {
+                showToast('関連画面がありません');
+            }
+        });
+    }
+
+    if (detailRefresh) {
+        detailRefresh.addEventListener('click', () => renderFromStore(true));
+    }
+
+    document.querySelectorAll('.segment-block').forEach((blk) => {
+        blk.addEventListener('click', () => {
+            const seg = blk.dataset.segment;
+            if (seg === 'firewall') return selectNode('firewall');
+            if (seg === 'inside') return selectNode('company');
+            return selectNode('home');
+        });
+    });
 
     window.addEventListener('beforeunload', () => {
         if (ftpPreviewUrl) {

@@ -45,6 +45,11 @@ nav a {
     }
 }
 
+.card-stack {
+    display: grid;
+    gap: 12px;
+}
+
 .card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -68,6 +73,12 @@ nav a {
     border: 1px solid var(--map-border);
     border-radius: 12px;
     background: var(--map-bg);
+}
+
+.diag-line {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #444;
 }
 
 /* Leafletの下地色を角丸に揃える */
@@ -376,6 +387,125 @@ nav a {
     font-size: 12px;
     color: #5b6477;
     padding-top: 8px;
+}
+
+.eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.focus-body {
+    display: grid;
+    gap: 12px;
+}
+
+.segment-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.segment-block {
+    border: 1px dashed #cfd8f3;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f8fbff;
+}
+
+.segment-block.state-ok {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.segment-block.state-ng {
+    border-color: #fecdd3;
+    background: #fff1f2;
+}
+
+.segment-label {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.segment-status {
+    font-size: 13px;
+    color: #334155;
+}
+
+.detail-panel {
+    border: 1px solid #dfe5f5;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+    display: grid;
+    gap: 8px;
+}
+
+.detail-head h3 {
+    margin: 0 0 4px;
+}
+
+.detail-list {
+    list-style: disc;
+    padding-left: 18px;
+    color: #1f2937;
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.install-block {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #f9fafb;
+}
+
+.install-list {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-top: 8px;
+}
+
+.install-chip {
+    border: 1px solid #d4dbe9;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #fff;
+    display: grid;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.install-chip strong {
+    font-size: 13px;
+}
+
+.install-chip small {
+    color: #4b5563;
+    font-size: 12px;
+}
+
+.install-chip.on {
+    border-color: #16a34a;
+    background: #ecfdf3;
+    box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.2);
+}
+
+.install-chip.off {
+    border-color: #e5e7eb;
 }
 
 /* 追加：保存状態ビューア用 */

@@ -11,9 +11,10 @@ Static HTML/CSS/JS pages for the network visualization training site. A Vite-bas
 ## Key features
 
 1. **Company DNS monitor** – `HTML/company.html` で任意のドメインへ HTTPS アクセスを試行し、DNS / FW レベルの疎通可否をその場で表示。
-2. **Home ↔ Company bridge view** – `HTML/sub.html` のリンクマップが AppStore の集計値を読み込み、家庭側・会社側の配線が完全か/通信可かを把握できます。
-3. **HTML アップロード (FTP もどき)** – ブラウザ上で HTML ファイルを選ぶと `localStorage` に保存され、リストから即プレビュー＆ダウンロード可能。GitHub Pages 公開前のドラフト確認に利用できます。
-4. **仮想ブラウザ** – 自宅 PC から会社 or アップロード済み HTML を参照したイメージを iframe 上で再現します。GitHub Pages 上でも同じ挙動になります。
+2. **Training map with device detail** – `HTML/training.html` で地図マーカーをクリックすると PC/FW/社内セグメントの設定と妥当性を表示。外側/境界/内側の分離状況とインストールチェックリスト（VPN/FWポリシー等）で「実験としての価値」を示します。
+3. **Home ↔ Company bridge view** – `HTML/sub.html` のリンクマップが AppStore の集計値を読み込み、家庭側・会社側の配線が完全か/通信可かを把握できます。
+4. **HTML アップロード (FTP もどき)** – ブラウザ上で HTML ファイルを選ぶと `localStorage` に保存され、リストから即プレビュー＆ダウンロード可能。GitHub Pages 公開前のドラフト確認に利用できます。
+5. **仮想ブラウザ** – 自宅 PC から会社 or アップロード済み HTML を参照したイメージを iframe 上で再現します。GitHub Pages 上でも同じ挙動になります。
 
 ## Quick start (Python http.server)
 
