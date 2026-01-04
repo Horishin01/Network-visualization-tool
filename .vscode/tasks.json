@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "python: serve (http://localhost:8080)",
+      "type": "shell",
+      "command": "py",
+      "args": [
+        "-3",
+        "-m",
+        "http.server",
+        "8080"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^\\s*(?:([^:]+):\\d+:\\d+:\\s+)?(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Serving HTTP on"
+        }
+      },
+      "detail": "Serve the static files using python -m http.server 8080."
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "label": "npm: dev",
+      "detail": "Start the Vite dev server for local development.",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^\\s*(?:([^:]+):\\d+:\\d+:\\s+)?(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s*>\\s*vite",
+          "endsPattern": "Local:\\s+http://localhost:5173/?"
+        }
+      }
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "label": "npm: build",
+      "problemMatcher": [],
+      "detail": "Create an optimized production build into dist/."
+    }
+  ]
+}

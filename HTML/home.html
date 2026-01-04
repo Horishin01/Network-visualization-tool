@@ -1,3 +1,4 @@
+ <!-- home.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -128,8 +129,19 @@
         </div>
     </footer>
 
-    <!-- このページ専用のスクリプト -->
+    <script src="../JS/store.js"></script>
+    <script>
+        AppStore.configure({
+            key: 'app:network:saves:default',
+            version: 1,
+            scope: 'local',       // ← 単一タブ遷移で共有したいので session に統一 /local：タブ間共有・永続
+            importOnStart: true     // ← 初回に local に残骸があれば session に取り込む
+        });
+    </script>
+
+    <!-- 橋渡し → UIロジック -->
+    <script src="../JS/home_store_bridge.js"></script>
     <script src="../JS/home.js" defer></script>
+
 </body>
 </html>
-    

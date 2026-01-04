@@ -1,0 +1,52 @@
+Codex 作業ログ
+==============
+
+エントリ 1:
+- VS Code で静的サイトを動かすための Node/Vite ツールチェーン（package.json、vite.config.js、.vscode/tasks.json、.vscode/launch.json、README、.gitignore）を追加。
+- 依存関係のインストールと dev サーバー起動手順、生成物を git へ含めない運用を README に記載。
+
+エントリ 2:
+- VS Code デバッガーの要件に合わせ、Chrome/Edge 構成を `type: "chrome"` / `type: "msedge"` に変更。
+
+エントリ 3:
+- Node を使わずに `python -m http.server 8080` で動かせるよう、専用タスク・起動構成と README の案内を追加。
+
+エントリ 4:
+- Windows の Python ランチャー `py -3` を用いる手順に更新し、Microsoft Store の疑似コマンドを回避。
+
+エントリ 5:
+- 会社側で DNS 疎通判定機能、トポロジ保存、Home↔Company ハブ画面（リンクモニタ・擬似 FTP・仮想ブラウザ）を実装し、GitHub Pages 公開まで含めたドキュメントを整備。
+
+エントリ 6:
+- 日本地図ページのサイド UI を Windows 風ブラウザ画面／会社プレビューに刷新し、Home 3/3 で Google 接続 T・未達成で F を表示。
+- 会社ネットワークは ONU→ルーター→Web サーバーが揃った時点で T 判定とし、FTP アクセス状態 (T/F) と連動して company.html を動的ロードするよう変更。
+- `company.js` の AppStore 連携を拡張し、Web サーバー検出・FTP 可否などの情報を保存してトレーニング画面に反映。
+
+エントリ 7:
+- 会社用のストレージ橋渡し `company_store_bridge.js` を新設し、Home と同様に AppStore 上へ edges / reach / status を保存できるようにした。
+- `company.html` のスクリプト読込順を調整 (`store.js` → `company_store_bridge.js` → `company.js`) し、`syncCompanyStore` はイベント経由で保存を委譲する形に整理。
+- これにより localStorage 上で company オブジェクトの判定結果が恒常的に確認可能。
+
+エントリ 8:
+- `company_store_bridge.js` を Home ブリッジと同じ構造へ刷新し、`edges/reach/status` を正規化して AppStore.patch へ書き込み、リセット／read API も公開。
+- `company.js` の `syncCompanyStore` はブリッジを直接呼び出した上で（必要に応じて）カスタムイベントを配信するよう変更し、ローカルストレージに確実に反映されるようにした。
+
+エントリ 9:
+- 会社シミュレータも Home 同様にキャンバス状態（ノード座標・接続・モード・IP割当）を `AppStore` へ保存/復元する `persistCompanyCanvas` / `restoreCompanyCanvas` を実装。
+- `spawnNode` をスナップショット復元向けに拡張し、ドラッグ・接続・削除・リセットなど主要操作のたびに自動保存するよう追加。
+- ページ再読み込み後もレイアウトが保持され、ONU→ルータ→Webサーバーで T になる判定がローカルストレージに反映されるようになった。
+
+エントリ 10:
+- `company_store_bridge.js` / `company.js` の判定仕様を Home と同じ形式（3 本のエッジ: fiberOnu / onuRouter / routerWeb が全て T なら companyOK）へそろえ、線を引くたびに `CompanyEdges.set()` が localStorage の `company.edges` を更新するように変更。
+
+今後の更新:
+- 以降の変更・追加内容も本ファイルへ順次追記する。
+\n�G���g�� 11:\n- DNS �`�F�b�N�O�Ɍ��݂̃m�[�h���W�E�ڑ��E�����ۑ����AAppStore �ւ� company.lastDnsCheck �݂̂�ǉ�����`�ɕύX�B����ɂ�� DNS �{�^���������Ă��ۑ��ς݂̏�Ԃ������Ȃ��B\n- storage �C�x���g���Ď����đ��^�u�� localStorage ��������������ۂɂ� estoreCompanyCanvas() ���������s���A�^�u���܂����ł���Ԃ����������悤�ɂ����B\n����̍X�V:\n- �ȍ~�̕ύX�E�ǉ����e���{�t�@�C���֏����ǋL����B
+�G���g�� 12:\n- ��ЃV�~�����[�^���v�Z�����G�b�W�� localStorage (company:lastEdges) �ɂ��������݁AAppStore �X�V�����f����Ȃ��u���E�U�ł��ŐV��Ԃ��Q�Ƃł���悤�ɂ����B\n- training.js ���� AppStore �ɒl�������ꍇ�ł� fallback ����ǂݎ���ĎO�{�̐ڑ��𔻒肷�邽�߁AChrome / Firefox �ǂ���ł����[�U�[PC�E��ЃJ�[�h�������� T/F �؂�ւ������B\n
+�G���g�� 13:\n- training.js �� Home/Company �̔���� summary �ł͂Ȃ��AlocalStorage �ɕۑ����ꂽ�G�b�W�l��D�悵�Čv�Z����悤�C���Bsummary �� false �̂܂܂ł��z���������� T �ɂȂ�悤�ɂ����B\n
+�G���g�� 14:\n- company.js �� localStorage �������݂����S�ɍs���w���p�[��ǉ����A���^�u�ł� storage �C�x���g�𖳎����ʃ^�u�ł͎�����������悤�ɂ����B��ЃV�~�����[�^�ŕۑ������m�[�h/���肪���^�u (training �Ȃ�) �Ƌ��L����܂��B\n
+�G���g�� 15:\n- CompanyStoreBridge.mark/reset ���C�����A�ۑ��E���Z�b�g�Ώۂ̃G�b�W�� fiberOnu / onuRouter / routerPc �ɑ������B����ɂ�� company.edges �� Training �y�[�W�Ɗ��S�Ɉ�v����B\n
+�G���g�� 16:\n- ��Ѓy�[�W/JS/CSS ��S�ʍ��V�B�m�[�h�z�u�E�z�� UI ���Đ݌v���A��/RJ45 �ڑ��E�h���b�O�E�폜�EDNS �`�F�b�N�E�f�o�b�O�_���v��V�����B\n- Home �Ɠ����f�[�^�\�� (AppStore+localStorage) �� canvas/edges ��ۑ����AChrome/Firefox �ǂ���ł� Training �֑����f�����悤�ɂ����B\n
+�G���g�� 17:\n- company.js �̔z��������ɘa���AONU �ƃ��[�^�[�A���[�^�[�� Web �T�[�o�[�� RJ45 �Őڑ�����Ă���΃|�[�g��ʂ��킸 T ����ɂȂ�悤�ɂ����B����Ń��[�U�[���C�ӂ̃|�[�g���Ŕz�����Ă� Training ���ɔ��f����܂��B\n
+\n�G���g�� 18:\n- company.js ���āX�\�z���AHome �Ɠ����̒ʐM�p�f�[�^�\���ɍ��킹���o�[�W�������d�グ�邽�߁A8,000 �s���̎b��R�[�h���o�͂��܂����B�������{�C���[�v���[�g�������������߁A���̃G���g���͖����Ƃ݂Ȃ��Ă��������B
+�G���g�� 18:\n- RJ45 �ڑ��̔�����O���t�T���ɕύX���AONU-���[�^�[�ԁ^���[�^�[-Web �Ԃ��m�[�h���o�R���Ă��Ă� T �ɂȂ�悤�ɏC���B����ɂ���Дz�������R�ɍ\���ł��ATraining �֐��������f�����B\n
