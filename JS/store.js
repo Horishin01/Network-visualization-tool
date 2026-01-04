@@ -1,5 +1,7 @@
 ﻿/* =========================================================
  * store.js  AppStore (localStorage / sessionStorage ラッパ)
+ * 変更点:
+ *  - set/patch/clear 時に BroadcastChannel と CustomEvent で更新通知
  * ========================================================= */
 (function (global) {
     'use strict';
@@ -8,105 +10,106 @@
     const DEF = Object.freeze({
         v: 0,
         updatedAt: new Date(0).toISOString(),
-        home: { edges: { fiberOnu: false, onuRouter: false, routerPc: false }, reach: { internet: false, count: 0 } },
+        home:    { edges:{ fiberOnu:false, onuRouter:false, routerPc:false }, reach:{ internet:false, count:0 } },
         company: {},
-        summary: { homeOK: false, companyOK: false }
+        summary: { homeOK:false, companyOK:false }
     });
 
-    function nowISO() { return new Date().toISOString(); }
-    function clone(x) { return JSON.parse(JSON.stringify(x)); }
+    const BC_NAME = 'network-app';
+    function broadcast(){
+        try { const ch = new BroadcastChannel(BC_NAME); ch.postMessage({ type:'store-updated', at: Date.now() }); ch.close(); } catch {}
+        try { window.dispatchEvent(new CustomEvent('appstore:updated', { detail:{ at: Date.now() } })); } catch {}
+    }
+
+    function nowISO(){ return new Date().toISOString(); }
+    function clone(x){ return JSON.parse(JSON.stringify(x)); }
 
     const AppStore = {
-        _conf: { key: 'app:network:saves:default', version: 1, scope: 'local', importOnStart: false },
+        _conf: { key:'app:network:saves:default', version:1, scope:'local', importOnStart:false },
         _storage: window.localStorage,
 
-        configure(conf) {
+        configure(conf){
             this._conf = Object.assign({}, this._conf, conf || {});
-            this._storage = (this._conf.scope === 'session') ? window.sessionStorage : window.localStorage;
+            this._storage = (this._conf.scope==='session') ? window.sessionStorage : window.localStorage;
             console.error(`${PREFIX} configure: key=${this._conf.key} v=${this._conf.version} scope=${this._conf.scope}`);
-            try { this.get(); } catch (e) {
+            try { this.get(); } catch(e){
                 console.error(`${PREFIX} parse error -> clear and reinit`, e);
                 this._storage.removeItem(this._conf.key);
-                this._ensureRoot();
             }
             this._ensureRoot();
         },
 
-        _ensureRoot() {
-            const cur = this._rawRead();
-            if (!cur) {
+        _ensureRoot(){
+            let cur = this._rawRead();
+            if (!cur){
                 const init = clone(DEF);
                 init.v = this._conf.version;
                 init.updatedAt = nowISO();
                 this._rawWrite(init);
-                console.error('[HOME-BRIDGE] ensureRoot: 初期化 set()');
+                broadcast();
                 return init;
             }
-            if (typeof cur.v !== 'number' || cur.v !== this._conf.version) {
+            if (typeof cur.v !== 'number' || cur.v !== this._conf.version){
                 cur.v = this._conf.version;
                 cur.updatedAt = nowISO();
                 this._rawWrite(cur);
+                broadcast();
             }
             let patched = false;
-            if (!cur.home) { cur.home = clone(DEF.home); patched = true; }
+            if (!cur.home)    { cur.home    = clone(DEF.home);    patched = true; }
             if (!cur.company) { cur.company = clone(DEF.company); patched = true; }
             if (!cur.summary) { cur.summary = clone(DEF.summary); patched = true; }
-            if (patched) {
+            if (patched){
                 cur.updatedAt = nowISO();
                 this._rawWrite(cur);
+                broadcast();
             }
             return cur;
         },
 
-        _rawRead() {
+        _rawRead(){
             const s = this._storage.getItem(this._conf.key);
             if (!s) return null;
             return JSON.parse(s);
         },
+        _rawWrite(obj){ this._storage.setItem(this._conf.key, JSON.stringify(obj)); },
 
-        _rawWrite(obj) { this._storage.setItem(this._conf.key, JSON.stringify(obj)); },
-
-        get() {
+        get(){
             const o = this._rawRead();
             return o ? clone(o) : null;
         },
-
-        set(obj) {
+        set(obj){
             const next = clone(obj);
             next.v = this._conf.version;
             next.updatedAt = nowISO();
             this._rawWrite(next);
+            broadcast();
             return clone(next);
         },
-
-        patch(mutator) {
+        patch(mutator){
             const base = this._ensureRoot();
             const draft = clone(base);
             const ret = (typeof mutator === 'function') ? mutator(draft) : undefined;
-            const next = ret && typeof ret === 'object' ? ret : draft;
+            const next = (ret && typeof ret === 'object') ? ret : draft;
             next.v = this._conf.version;
             next.updatedAt = nowISO();
             this._rawWrite(next);
+            broadcast();
             return clone(next);
         },
-
-        clear() {
+        clear(){
             this._storage.removeItem(this._conf.key);
             console.error(`${PREFIX} cleared`);
+            broadcast();
         },
-
-        readSummary() {
+        readSummary(){
             const o = this._ensureRoot();
             const s = o.summary || DEF.summary;
             return { homeOK: !!s.homeOK, companyOK: !!s.companyOK };
         },
-
-        saveDraft(scope, data) {
-            if (!scope || typeof data !== 'object') {
-                console.error(`${PREFIX} saveDraft invalid args`);
-                return this.get();
-            }
-            return this.patch((d) => {
+        saveDraft(scope, data){
+            if (!scope || typeof data !== 'object'){ console.error(`${PREFIX} saveDraft invalid args`); return this.get(); }
+            return this.patch(d => {
                 if (!d[scope]) d[scope] = {};
                 Object.assign(d[scope], clone(data));
             });

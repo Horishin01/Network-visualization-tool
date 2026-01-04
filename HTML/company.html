@@ -1,20 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>会社ネットワーク構築（ベータ）</title>
-
-    <!-- 共通スタイルがあれば先に読み込み -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>会社ネットワーク構築 (ベータ)</title>
     <link rel="stylesheet" href="../CSS/style.css" />
-
-    <!-- このページ専用 -->
     <link rel="stylesheet" href="../CSS/company.css" />
 </head>
 <body>
     <header class="site-header">
         <div class="container header-row">
-            <h1 class="site-title">会社ネットワーク構築（ベータ）</h1>
+            <h1 class="site-title">会社ネットワーク構築 (ベータ)</h1>
             <nav class="site-nav">
                 <a href="../index.html">ホーム</a>
                 <a href="./training.html">トレーニング</a>
@@ -23,74 +19,75 @@
         </div>
     </header>
 
-    <main class="container">
-        <section class="stack-lg">
-            <ul class="lead-list">
-                <li>パレットからノード追加、ドラッグで移動、<b>RJ45</b>／<b>光</b>で配線できます。</li>
-                <li>簡易モード：<b>ONU・社内ルータ・RJ45・光</b>（最小構成）</li>
-                <li>実践モード：セグメント分離＋Firewall＋各種サーバを追加（簡易の上位）。</li>
-            </ul>
-        </section>
-
-        <section class="company-grid">
-            <!-- 左：オフィスキャンバス -->
-            <div class="card canvas-card">
-                <div class="canvas-title">Office Network Floor</div>
-
-                <!-- キャンバス本体 -->
-                <div id="officeStage" class="stage" tabindex="0" aria-label="会社ネットワーク構成図">
-                    <!-- 左の「光」アンカー -->
-                    <button id="fiberAnchor" class="fiber-dot" title="社外WAN（光）">光</button>
-
-                    <!-- ケーブル描画層 -->
-                    <svg id="cableSvg" class="cable-layer" width="100%" height="100%" aria-hidden="true"></svg>
-                </div>
-
-                <details class="note">
-                    <summary>メモ</summary>
-                    <p>WANは <code>203.0.113.0/24</code>、LANは <code>10.0.0.0/24</code> を使用します。</p>
-                </details>
+    <main class="container company-shell">
+        <section class="card hero">
+            <div>
+                <h2>Office Network Builder</h2>
+                <p>ONU と社内ルーター、Web サーバー、内部端末をドラッグ＆ドロップで配置し、光ファイバーと RJ45 ケーブルで配線します。光 → ONU → ルーター → Web サーバーの 3 本が揃うとトレーニング画面の会社判定も T になります。</p>
+                <p class="hint">FTP 判定: 光 → ONU → ルーター → FTP サーバー が揃うと FTP バッジが T になり、トレーニング画面の FTP コンソールが開きます。</p>
             </div>
-
-            <!-- 右：パレット -->
-            <aside class="card side">
-                <h3 class="card-title">パレット</h3>
-
-                <!-- モード -->
-                <div class="mode">
-                    <label><input type="radio" name="mode" id="modeSimple" checked> 簡易（最小構成）</label>
-                    <label><input type="radio" name="mode" id="modePro"> 実践（セグメント＋FW）</label>
-                </div>
-
-                <!-- 追加パレット（data-mode で表示制御） -->
-                <div class="palette">
-                    <button class="pal" data-type="onu" data-mode="both">ONU</button>
-                    <button class="pal" data-type="router" data-mode="both">社内ルータ</button>
-                    <button class="pal tool" data-tool="rj45" data-mode="both">RJ45 ケーブル</button>
-                    <button class="pal tool" data-tool="fiber" data-mode="">光ファイバー</button>
-                    <button class="pal" data-type="pc" data-mode="both">社員PC</button>
-                    <button class="pal" data-type="web" data-mode="both">Webサーバ</button>
-                    <button class="pal" data-type="dns" data-mode="both">DNSサーバ</button>
-                    <button class="pal" data-type="db" data-mode="both">DBサーバ</button>
-                    <button class="pal" data-type="mail" data-mode="both">Mailサーバ</button>
-                    <hr>
-
-                    <button class="pal" data-type="fw" data-mode="pro">Firewall</button>
-                </div>
-
-                <label class="toggle">
-                    <input id="connectToggle" type="checkbox" />
-                    ケーブル接続モード（クリック／ドラッグで配線）
-                </label>
-                <div id="connectStatus" class="badge">接続: OFF</div>
-
-                <h3 class="card-title">ユーティリティ</h3>
-                <div class="row gap-sm">
-                    <button id="btnShowIp" class="btn ghost">IP 一覧</button>
-                    <button id="btnReset" class="btn danger ghost">リセット</button>
-                </div>
-            </aside>
+            <div class="hero-actions">
+                <span class="badge status" id="companyStatusBadge">F</span>
+                <span class="badge status ftp" id="ftpStatusBadge" title="FTP接続判定">FTP:F</span>
+                <button id="btnClearAll" class="btn ghost">全ノード削除</button>
+            </div>
         </section>
+
+        <div class="company-workspace">
+            <section class="card stage-card">
+                <header class="stage-header">
+                    <div>
+                        <h3>キャンバス</h3>
+                        <p>ノードを配置し、配線ツールを選んでポートを順にクリックすると接続できます。</p>
+                    </div>
+                    <div class="tool-buttons">
+                        <button class="tool-btn" data-tool="fiber">光ファイバー</button>
+                        <button class="tool-btn" data-tool="rj45">RJ45 ケーブル</button>
+                    </div>
+                </header>
+                <div id="companyStage" class="stage" aria-label="会社ネットワークキャンバス">
+                    <button id="fiberAnchor" class="fiber-anchor" title="光回線 (WAN)">光</button>
+                    <svg id="companyCables" class="cable-layer" width="100%" height="100%"></svg>
+                </div>
+                <footer class="stage-footer">
+                    <p>ノードはドラッグで移動できます。ポートをクリックすると接続先を選択できます。ノード右上の ✕ で削除できます。</p>
+                </footer>
+            </section>
+
+            <aside class="side-panel">
+                <section class="card panel">
+                    <h3>ノードパレット</h3>
+                    <div id="companyPalette" class="palette">
+                        <button data-node-type="onu">ONU</button>
+                        <button data-node-type="router">社内ルーター</button>
+                        <button data-node-type="web">Web サーバー</button>
+                        <button data-node-type="ftp">FTP サーバー</button>
+                        <button data-node-type="pc">社員PC</button>
+                        <button data-node-type="dns">DNS サーバー</button>
+                        <button data-node-type="db">DB サーバー</button>
+                        <button data-node-type="mail">Mail サーバー</button>
+                    </div>
+                </section>
+
+                <section class="card panel">
+                    <h3>DNS Connectivity</h3>
+                    <form id="dnsCheckForm" class="dns-form" autocomplete="off">
+                        <label>
+                            <span>ドメイン名</span>
+                            <input id="dnsHost" type="text" value="example.com" />
+                        </label>
+                        <button class="btn ghost" type="submit">疎通チェック</button>
+                        <p id="dnsResult" class="hint">HTTPS アクセスを試行し、結果を表示します。</p>
+                    </form>
+                </section>
+
+                <section class="card panel">
+                    <h3>デバッグ</h3>
+                    <button id="btnDumpState" class="btn ghost" type="button">状態をダンプ</button>
+                    <pre id="debugDump" class="dump" aria-live="polite"></pre>
+                </section>
+            </aside>
+        </div>
     </main>
 
     <footer class="site-footer">
@@ -99,11 +96,11 @@
         </div>
     </footer>
 
-    <script src="../JS/company.js" defer></script>
-    <!-- ストア（共通） -->
     <script src="../JS/store.js"></script>
     <script>
         AppStore.configure({ key: 'app:network:saves:default', version: 1 });
     </script>
+    <script src="../JS/company_store_bridge.js"></script>
+    <script src="../JS/company.js" defer></script>
 </body>
 </html>

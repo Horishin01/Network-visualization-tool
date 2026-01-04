@@ -1,6 +1,9 @@
 /* =========================================================
  * home.js  自宅Wi-Fiミニシミュレータ + AppStore同期（ログは error）
- * 重要: 初期ロードでは書き込まない。非破壊イベントではダウングレード禁止。
+ * 追加: ノード/配線/Wi-Fi を home.canvas に永続化し復元
+ * 修正: パレットは click + preventDefault、生成要素は絶対配置と z-index 付与、
+ *      安全配置 positionSafe、復元時の保存抑止(restoring)
+ * 重要: 初期ロードでは判定を書き込まない。非破壊イベントではダウングレード禁止。
  * ========================================================= */
 (function (global) {
     'use strict';
@@ -14,11 +17,13 @@
         wifi: { ssid: null, password: null, enc: null, b24: true, b5: false, configured: false },
         poolWlan: { base: '192.168.0.', next: 100 },
         poolLan: { base: '192.168.10.', next: 10 },
-        devices: {},
-        connections: [],
+        devices: {},                 // {id:{type, mode, ip}}
+        connections: [],             // [{id,a,b,kind,lineEl}]
         selectedId: null, selectedCableId: null,
         cableMode: false, cableTool: null, pendingAnchor: null, tempCable: null
     };
+    let restoring = false;         // 復元中の書き込み抑止
+    let uid = 0, cableUid = 0;
 
     // ---- DOM ----
     const $ = (q) => document.querySelector(q);
@@ -26,11 +31,14 @@
     const cableSvg = $('#cableSvg');
     const wanAnchor = $('#wanAnchor');
 
-    // ---- 画像（404は機能非依存） ----
+    // ---- 画像 ----
     const IMG = {
-        pc: '../img/devices/pc.png', phone: '../img/devices/phone.png',
-        tablet: '../img/devices/tablet.png', game: '../img/devices/game.png',
-        printer: '../img/devices/printer.png', router: '../img/devices/router.png',
+        pc: '../img/devices/pc.png',
+        phone: '../img/devices/phone.png',
+        tablet: '../img/devices/tablet.png',
+        game: '../img/devices/game.png',
+        printer: '../img/devices/printer.png',
+        router: '../img/devices/router.png',
         onu: '../img/devices/onu.png'
     };
 
@@ -48,21 +56,36 @@
             state.wifi = { ssid, password: pw, enc, b24, b5, configured: true };
             const lbl = document.querySelector('#routerBadge .router-label');
             if (lbl) lbl.innerHTML = `Router<br><small>${ssid} / ${enc}${b5 ? ' / 5GHz' : ''}${b24 ? ' / 2.4GHz' : ''}</small>`;
-            hint.textContent = '適用しました。';
+            persistCanvas('wifi');
             log('Wi-Fi適用', state.wifi);
         });
     }
 
-    // ---- パレット ----
-    document.querySelectorAll('.palette-item').forEach(btn => {
-        btn.addEventListener('pointerdown', (ev) => {
-            const tool = btn.dataset.tool;
-            if (tool) { enableCableTool(btn, tool); return; }
-            const el = spawnDevice(btn.dataset.type); if (el) startDrag(el, ev);
+    // ---- パレット（clickのみ、常にpreventDefault / type=button） ----
+    initPalette();
+    function initPalette() {
+        const root = document.getElementById('palette') || document;
+        root.querySelectorAll('.palette-item').forEach(el => {
+            if (el.tagName === 'BUTTON' && el.type !== 'button') el.type = 'button';
         });
-    });
+        root.addEventListener('click', (e) => {
+            const btn = e.target.closest('.palette-item');
+            if (!btn) return;
+            e.preventDefault(); e.stopPropagation();
+            const tool = btn.dataset.tool;
+            const type = btn.dataset.type;
+            if (tool) { enableCableTool(btn, tool); return; }
+            if (!type) return;
+            const el = spawnDevice(type);
+            if (!el) return;
+            positionSafe(el);
+            persistCanvas('spawn');
+        });
+    }
+
+    // ---- ケーブルツール ----
     function enableCableTool(_, tool) {
-        state.cableMode = true; state.cableTool = tool; $('#cableToggle').checked = true;
+        state.cableMode = true; state.cableTool = tool; const tgl = $('#cableToggle'); if (tgl) tgl.checked = true;
         document.querySelectorAll('.palette-item.tool').forEach(el => el.classList.toggle('tool-active', el.dataset.tool === tool));
         state.pendingAnchor = null; setStatus(`${tool.toUpperCase()} 選択`, 'on step');
         log('cableTool=', tool);
@@ -81,39 +104,64 @@
         });
     }
 
+    // ---- 安全配置 ----
+    function positionSafe(el, x, y) {
+        const rect = houseBody.getBoundingClientRect();
+        const nx = Math.max(6, Math.min(rect.width - el.offsetWidth - 6, (x ?? Math.floor(rect.width * 0.45))));
+        const ny = Math.max(6, Math.min(rect.height - el.offsetHeight - 6, (y ?? Math.floor(rect.height * 0.25))));
+        el.style.left = nx + 'px';
+        el.style.top = ny + 'px';
+    }
+
     // ---- 機器生成 ----
-    let uid = 0, cableUid = 0;
-    function spawnDevice(type) {
-        if (type === 'router') {
-            if (document.getElementById('routerBadge')) { alert('ルーターは1台までです。'); return null; }
-            const el = document.createElement('div');
-            el.className = 'router'; el.id = 'routerBadge'; el.style.left = '140px'; el.style.top = '220px';
-            el.innerHTML = `
-        <img class="router-img" src="${IMG.router}" onerror="this.style.display='none'">
-        <div class="router-label">Router<br><small>${state.wifi.configured ? (state.wifi.ssid + ' / ' + state.wifi.enc) : '未設定'}</small></div>
-        <span id="routerWan"  class="port wan" title="WANポート"></span>
-        <span id="routerPort1" class="port"     title="LANポート"></span>
-        <button class="close" title="削除">×</button>`;
-            houseBody.appendChild(el);
-            bindRouterEvents();
-            el.querySelector('.close').addEventListener('click', (e) => { e.stopPropagation(); deleteRouter(); });
-            log('spawn router');
-            return el;
-        }
-        const id = `dev-${type}-${++uid}`;
+    function spawnRouterAt(x, y) {
+        if (document.getElementById('routerBadge')) return document.getElementById('routerBadge');
         const el = document.createElement('div');
-        el.className = 'device wlan' + (type === 'onu' ? ' onu' : ''); el.dataset.type = type; el.id = id;
-        const img = IMG[type] ? `<div class="thumb"><img src="${IMG[type]}" onerror="this.style.display='none'"></div>` : `<div class="thumb"></div>`;
-        el.innerHTML = `${img}
-      <div class="label">${labelOf(type)}</div>
-      <span class="ip">${type === 'onu' ? 'WAN未接続' : '未接続'}</span>
+        el.className = 'router';
+        el.id = 'routerBadge';
+        el.style.position = 'absolute';
+        el.style.zIndex = '10';
+        el.style.left = (x ?? 140) + 'px';
+        el.style.top = (y ?? 220) + 'px';
+        el.innerHTML = `
+      <img class="router-img" src="${IMG.router}" onerror="this.style.display='none'">
+      <div class="router-label">Router<br><small>${state.wifi.configured ? (state.wifi.ssid + ' / ' + state.wifi.enc) : '未設定'}</small></div>
+      <span id="routerWan"  class="port wan" title="WANポート"></span>
+      <span id="routerPort1" class="port"     title="LANポート"></span>
       <button class="close" title="削除">×</button>`;
-        el.style.left = '330px'; el.style.top = '120px';
         houseBody.appendChild(el);
-        state.devices[id] = { type, ip: null, mode: (type === 'printer' ? 'lan' : 'wlan') };
+        bindRouterEvents();
+        el.querySelector('.close').addEventListener('click', (e) => { e.stopPropagation(); deleteRouter(); });
+        return el;
+    }
+
+    function spawnDevice(type) {
+        if (type === 'router') { const r = spawnRouterAt(); persistCanvas('spawnRouter'); return r; }
+        const id = `dev-${type}-${++uid}`;
+        return spawnDeviceSnapshot(id, { type, mode: (type === 'printer' ? 'lan' : 'wlan'), ip: null, x: 330, y: 120 });
+    }
+
+    function spawnDeviceSnapshot(id, rec) {
+        const el = document.createElement('div');
+        el.className = 'device ' + (rec.mode || 'wlan') + (rec.type === 'onu' ? ' onu' : '');
+        el.dataset.type = rec.type; el.id = id;
+        el.style.position = 'absolute';
+        el.style.zIndex = '10';
+        const img = IMG[rec.type] ? `<div class="thumb"><img src="${IMG[rec.type]}" onerror="this.style.display='none'"></div>` : `<div class="thumb"></div>`;
+        el.innerHTML = `${img}
+      <div class="label">${labelOf(rec.type)}</div>
+      <span class="ip">${rec.type === 'onu' ? (rec.ip || 'WAN未接続') : (rec.ip || '未接続')}</span>
+      <button class="close" title="削除">×</button>`;
+        houseBody.appendChild(el);
+        if (typeof rec.x === 'number' && typeof rec.y === 'number') {
+            el.style.left = rec.x + 'px'; el.style.top = rec.y + 'px';
+        } else {
+            positionSafe(el);
+        }
+        state.devices[id] = { type: rec.type, ip: rec.ip || null, mode: rec.mode || 'wlan' };
         el.querySelector('.close').addEventListener('click', (e) => { e.stopPropagation(); deleteDevice(id); });
-        makeDraggable(el); assignIpIfNeeded(id);
-        log('spawn device', id, state.devices[id]);
+        makeDraggable(el);
+        if (!rec.ip) assignIpIfNeeded(id);
         return el;
     }
 
@@ -128,7 +176,8 @@
         const rect = houseBody.getBoundingClientRect();
         const sx = ev.clientX, sy = ev.clientY;
         const ox = parseFloat(el.style.left || 0), oy = parseFloat(el.style.top || 0);
-        el.setPointerCapture(ev.pointerId); el.classList.add('dragging');
+        try { el.setPointerCapture(ev.pointerId); } catch (_) { }
+        el.classList.add('dragging');
         const move = (e) => {
             let nx = ox + (e.clientX - sx), ny = oy + (e.clientY - sy);
             const maxX = rect.width - el.offsetWidth - 6, maxY = rect.height - el.offsetHeight - 6;
@@ -136,9 +185,11 @@
             el.style.left = nx + 'px'; el.style.top = ny + 'px'; updateLinesFor(el.id);
         };
         const up = () => {
-            el.classList.remove('dragging'); el.releasePointerCapture(ev.pointerId);
+            el.classList.remove('dragging');
+            try { el.releasePointerCapture(ev.pointerId); } catch (_) { }
             document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
             if (el.classList.contains('device')) assignIpIfNeeded(el.id);
+            if (!restoring) persistCanvas('drag');
         };
         document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
     }
@@ -225,7 +276,10 @@
         const conn = { id, lineEl: line, a, b, kind }; state.connections.push(conn);
         updateLine(conn);
         log('createCable', { id, a, b, kind }, 'connections=', dumpConnections());
-        syncEdgesToStore('createCable', { force: true });
+        if (!restoring) {
+            syncEdgesToStore('createCable', { force: true });
+            persistCanvas('createCable');
+        }
         line.addEventListener('click', (ev) => { ev.stopPropagation(); selectCable(id); });
     }
 
@@ -266,6 +320,7 @@
         const pool = (d.mode === 'lan' ? state.poolLan : state.poolWlan);
         d.ip = pool.base + (pool.next++);
         const el = document.querySelector(`#${id} .ip`); if (el) el.textContent = d.ip;
+        if (!restoring) persistCanvas('ip-assign');
     }
     function setDeviceMode(id, mode) {
         const d = state.devices[id]; if (!d) return;
@@ -273,9 +328,9 @@
         const el = document.getElementById(id);
         el.classList.remove('wlan', 'lan'); el.classList.add(mode);
         d.ip = null; assignIpIfNeeded(id);
+        if (!restoring) persistCanvas('mode');
     }
 
-    // ラベル
     const labelOf = (t) => ({ pc: 'PC', phone: 'スマホ', game: 'ゲーム機', tablet: 'タブレット', printer: 'プリンタ(有線)', onu: 'ONU' }[t] || t);
 
     // 選択/削除
@@ -292,6 +347,7 @@
         if (state.selectedId === id) state.selectedId = null;
         log('deleteDevice', id, 'connections=', dumpConnections());
         syncEdgesToStore('deleteDevice', { force: true, destructive: true });
+        if (!restoring) persistCanvas('deleteDevice');
     }
     function deleteRouter() {
         const r = document.getElementById('routerBadge'); if (!r) return;
@@ -300,6 +356,7 @@
         r.remove(); if (state.selectedId === 'routerBadge') state.selectedId = null; state.pendingAnchor = null;
         log('deleteRouter', 'connections=', dumpConnections());
         syncEdgesToStore('deleteRouter', { force: true, destructive: true });
+        if (!restoring) persistCanvas('deleteRouter');
     }
     function deleteCable(id) {
         const i = state.connections.findIndex(c => c.id === id);
@@ -307,6 +364,7 @@
             state.connections[i].lineEl.remove(); state.connections.splice(i, 1); state.selectedCableId = null; setStatus('ケーブル削除', 'on');
             log('deleteCable', id, 'connections=', dumpConnections());
             syncEdgesToStore('deleteCable', { force: true, destructive: true });
+            if (!restoring) persistCanvas('deleteCable');
         }
     }
     document.addEventListener('keydown', (e) => {
@@ -376,7 +434,6 @@
         const computed = computeEdges();
         const prev = (global.AppStore && AppStore.get())?.home?.edges || null;
 
-        // 初期ロードや非破壊イベントではダウングレード禁止
         let next = computed;
         if (!destructive && prev && anyTrue(prev)) {
             next = {
@@ -407,19 +464,77 @@
         } catch (e) { warn('snapshot失敗', e); }
     }
 
-    // 重要：**ロード時は書かない**。ユーザ操作（作成/削除）や明示同期のみ書く。
-    // 手動デバッグ
+    // ---- キャンバス保存/復元 ----
+    function elementXY(id) {
+        const el = (id === 'routerBadge') ? document.getElementById('routerBadge') : document.getElementById(id);
+        if (!el) return { x: 0, y: 0 };
+        return { x: parseFloat(el.style.left || 0), y: parseFloat(el.style.top || 0) };
+    }
+
+    function snapshotCanvas() {
+        const routerEl = document.getElementById('routerBadge');
+        const router = routerEl ? { x: parseFloat(routerEl.style.left || 0), y: parseFloat(routerEl.style.top || 0) } : null;
+        const devices = {};
+        Object.keys(state.devices).forEach(id => {
+            const d = state.devices[id];
+            const pos = elementXY(id);
+            devices[id] = { type: d.type, mode: d.mode, ip: d.ip, x: pos.x, y: pos.y };
+        });
+        const connections = state.connections.map(c => ({ a: c.a, b: c.b, kind: c.kind }));
+        return { router, devices, connections, wifi: state.wifi };
+    }
+
+    function persistCanvas(reason) {
+        if (restoring) return;
+        const snap = snapshotCanvas();
+        if (!global.AppStore || !AppStore.patch) { warn('AppStore.patch 未定義'); return; }
+        AppStore.patch(d => {
+            if (!d.home) d.home = {};
+            d.home.canvas = snap;
+        });
+        log('persistCanvas:', reason, snap);
+    }
+
+    function restoreCanvasFromStore() {
+        const s = global.AppStore && AppStore.get();
+        const cv = s?.home?.canvas;
+        if (!cv) return;
+        restoring = true;
+
+        if (cv.wifi) state.wifi = cv.wifi;
+        if (cv.router) spawnRouterAt(cv.router.x, cv.router.y);
+
+        const ids = Object.keys(cv.devices || {});
+        const maxIdNum = (ids.map(x => (x.match(/-(\d+)$/)?.[1] || 0)).map(n => +n).reduce((a, b) => Math.max(a, b), 0)) || 0;
+        uid = Math.max(uid, maxIdNum);
+        ids.forEach(id => spawnDeviceSnapshot(id, cv.devices[id]));
+
+        (cv.connections || []).forEach(c => { createCable(c.a, c.b, c.kind); });
+
+        restoring = false;
+        persistCanvas('restore');
+        syncEdgesToStore('restore', { force: true });
+        log('restoreCanvasFromStore: done');
+    }
+
+    // ---- 初期化 ----
+    document.addEventListener('DOMContentLoaded', restoreCanvasFromStore);
+
+    // ---- 手動デバッグ ----
     global.HomeDebug = {
         dump() {
             const diag = {
                 devices: JSON.parse(JSON.stringify(state.devices)),
                 connections: dumpConnections(),
                 edges: computeEdges(),
+                canvas: snapshotCanvas(),
                 store: (global.AppStore && AppStore.get()) || null
             };
             (console[CH] || console.log).call(console, '[HOME][DUMP]', diag);
             return diag;
         },
-        syncNow() { syncEdgesToStore('manualSync', { force: true }); }
+        syncNow() { syncEdgesToStore('manualSync', { force: true }); },
+        saveNow() { persistCanvas('manual'); }
     };
+
 })(window);
