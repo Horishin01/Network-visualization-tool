@@ -1,5 +1,5 @@
 学習サイト向けガイド機能（案）
-最終更新: 2025-12-04 (JST)
+最終更新: 2026-01-05 (JST)
 
 目的
 - 初回訪問者が迷わないように、「やること」と「進捗」を短時間で伝える。
@@ -10,7 +10,7 @@
    - 位置: トレーニングページ左カラム上部に固定表示
    - 内容: 3〜5 ステップの簡易チェックリスト（例: 光→ONU 接続, ONU→Router, Router→Web, Router→FTP, DNS 疎通）
    - アフォーダンス: 各ステップに「開く/確認する」ボタンを付与し、対応ページ・セクションにスクロールまたは遷移
-   - ステータス: 成否をバッジ（T/F）で表示。AppStore の summary / company.status を参照
+   - ステータス: 成否をバッジ（T/F）で表示。`app:network:saves:default` を参照
 
 2. ツアーポップアップ（任意起動）
    - トグル: 「チュートリアルを開始」ボタンで起動。いつでもスキップ可
@@ -23,11 +23,11 @@
 
 4. 参照
    - 仕様・運用規定: docs/specifications.txt, docs/ai_usage_guidelines.txt
-   - 実装フック: JS/training.js（バッジ状態・トースト）、JS/company.js（判定）、JS/main.js（仮想FTP）
+   - 実装フック: JS/pages/TrainingPage.jsx（バッジ状態・トースト）、JS/pages/CompanyPage.jsx（判定）、JS/pages/HomePage.jsx（ガイド連携）
 
 実装ステップ（提案）
-1) ガイドパネルの UI スケッチ → HTML/training.html にセクション追加 → CSS/map.css で簡易スタイル
-2) JS/training.js からバッジ状態を受け取り、ガイド項目を更新する小関数を追加
+1) ガイドパネルの UI スケッチ → HTML/training.html にセクション追加 → CSS/training.css で簡易スタイル
+2) JS/pages/TrainingPage.jsx からバッジ状態を受け取り、ガイド項目を更新する小関数を追加
 3) 任意起動のツアーモーダルを追加（シンプルな div オーバーレイ）
 4) 必要に応じて company/home ページにも簡易ヒント欄を追加
 

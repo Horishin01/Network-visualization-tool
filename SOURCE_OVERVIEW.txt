@@ -1,65 +1,33 @@
 プロジェクト全体のコード概要（UTF-8テキストのみ）
 
 ■ index.html
-・役割: ランディングページ。共通スタイル CSS/style.css を読み込み、Home / Training / このサイトについてへの導線を用意。
+・役割: ランディングページの HTML エントリ。React の `JS/index.jsx` を読み込む。
 
-■ HTML/home.html ＋ CSS/home.css ＋ JS/home.js
-・役割: 自宅Wi-Fiシミュレータの画面。
-・主な動作（JS/home.js）:
-  - ノード（ルーター/ONU/PC/スマホ/タブレット/プリンタ等）のドラッグ配置・削除。
-  - RJ45/光ケーブルツールを用いた配線とSVGによる線描画。
-  - DHCP風のIP割当、再接続時のIP変更、電源リセット（powerCycle）。
-  - Wi-Fi設定フォーム（SSID/パスワード/暗号方式/周波数帯）とヒント表示。
-  - 状態を AppStore(localStorage) に保存・読込、ストレージ変更イベントで同期。
+■ HTML/training.html / HTML/home.html / HTML/company.html / HTML/about.html
+・役割: 各ページの HTML エントリ。対応する React エントリを読み込む。
 
-■ HTML/company.html ＋ CSS/company.css ＋ JS/company.js ＋ JS/company_store_bridge.js
-・役割: 会社ネットワークシミュレータ。
-・主な動作（JS/company.js）:
-  - ノード（ONU/Router/Web/FTP/DNS/PC/DB/Mailなど）の生成・ドラッグ移動・削除。
-  - ポートクリックで接続先を選択し、SVG line で光/ RJ45 ケーブル描画。
-  - 接続判定: fiberOnu（光→ONU）、onuRouter（ONU→Router）、routerPc（Router→PCまたはWeb）、routerFtp（Router→FTP）。
-  - 判定結果を AppStore に保存（company.edges / reach / status）し、summary.companyOK を更新。
-  - キャンバス状態を localStorage と AppStore に永続化・復元。DNS疎通テスト（fetch/no-cors または画像ロード）、デバッグダンプ出力。
-・ブリッジ（JS/company_store_bridge.js）:
-  - AppStore 初期化と旧キーからのマイグレーション（routerWan/webServer → routerPc など）。
-  - edges に routerFtp を含めた構造を保証し、status(ftpReachable 等) を一元管理。
-  - BroadcastChannel と CustomEvent で更新通知。
+■ JS/index.jsx / JS/training.jsx / JS/home.jsx / JS/company.jsx / JS/about.jsx
+・役割: React エントリ。共通 CSS とページ別 CSS を読み込み、各ページのコンポーネントを描画する。
 
-■ HTML/training.html ＋ CSS/map.css ＋ JS/training.js ＋ JS/training_boot.js
-・役割: トレーニング画面（地図＋プレビュー＋FTP配置コンソール）。
-・主な動作（JS/training.js）:
-  - Leaflet 地図に Home(東京) / Company(福岡) マーカーを表示し、クリックで各ページへ遷移。
-  - AppStore スナップショットを読み取り、Home/Company/FTP バッジを更新。routerFtp を含む会社側の接続状態で FTP バッジを決定。
-  - PCウィンドウ風の表示（ホームが3本接続かつOKならオンライン表示）。
-  - 会社パネル: 会社OK時に FTP コンソールを開き、以下を提供:
-      * FTPサーバーアクセス状態表示
-      * 3つのサイト (Site A/B/C) への割当/プレビュー
-      * 既存アップロード（sub.html で保存した仮想FTPファイル）の選択・配置
-      * その場アップロード（input type=file）を仮想FTPに追加
-      * 割当結果を localStorage(app:network:ftpDeploy:v1) と AppStore.company.status.ftpDeployed に保存
-  - storage/BroadcastChannel で他タブ更新を反映、toast 通知、プレビュー Blob URL の後始末。
-・初期化（JS/training_boot.js）:
-  - AppStore.configure を呼び出し、キー/バージョン/スコープを設定。
+■ JS/pages/*.jsx
+・役割: ページ本体。
+  - IndexPage.jsx: 学習スライドの切替。
+  - TrainingPage.jsx: 指示書 + 日本地図（改定後レイアウト、Leaflet）。
+  - HomePage.jsx: 自宅ネットワーク（パレット/モニター/状態保存）。
+  - CompanyPage.jsx: 会社ネットワーク（パレット/モニター/FTPアプリ切替）。
+  - AboutPage.jsx: サイト概要。
 
-■ HTML/sub.html ＋ CSS/sub.css ＋ JS/main.js
-・役割: 高度ツールページ（拠点リンク状況＋仮想FTPアップロード＋仮想ブラウザ）。
-・主な動作（JS/main.js）:
-  - 仮想FTPアップロード: localStorage(app:network:ftpUploads:v1) に HTML/TXT を保存、リスト表示、プレビュー/ダウンロード/削除。
-  - 仮想ブラウザ: Home/Company/トップページの切替、アップロード済みファイルをiframeで表示。
-  - 橋渡しステータス: AppStoreの summary/home/company/dns 情報を読み、Home/Company の ONLINE/OFFLINE や詳細を表示。自動更新トグルあり。
-  - storage/BroadcastChannel で他タブ更新を即時反映。
+■ JS/components/AppShell.jsx
+・役割: 共通ヘッダー/フッター/ナビゲーション。
+
+■ JS/utils/storage.js
+・役割: localStorage の load/save ヘルパー。
+
+■ JS/utils/appStore.js
+・役割: `app:network:saves:default` の保存/判定（home/company/summary）。
 
 ■ CSS/style.css
-・共通のベースレイアウト、ヘッダー/フッター、ボタン、タイポグラフィ、カードスタイルなど。
+・役割: 共通レイアウト（罫線背景、ヘッダー、フッター、パネル類）。
 
-■ CSS/map.css
-・トレーニング画面専用スタイル: 地図枠、バッジ、PCウィンドウ、会社パネル、FTPコンソール（スロットカード/プレビュー/トースト）、ダンプ表示など。
-
-■ JS/store.js
-・AppStoreのヘルパー。configure/set/get/patch、localStorage・sessionStorage の切替、BroadcastChannel/CustomEvent で更新通知を行う薄いラッパー。
-
-■ JS/training_boot.js
-・training.html 用の AppStore 初期設定スクリプト（キー/バージョン/スコープ指定）。
-
-■ server.py
-・プロジェクトルートをカレントにして起動する簡易HTTPサーバー。ThreadingHTTPServer + SimpleHTTPRequestHandler。MIME拡張（html/css/js）済み。PORT環境変数または 8000 で待受。
+■ CSS/index.css / CSS/training.css / CSS/home.css / CSS/company.css / CSS/about.css
+・役割: ページ固有のレイアウト。

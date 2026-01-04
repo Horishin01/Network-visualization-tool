@@ -1,0 +1,16 @@
+.about-box {
+  border: 2px solid var(--ink);
+  background: #fffdf7;
+  padding: 18px;
+  line-height: 1.8;
+}
+
+.about-box h2 {
+  margin-top: 0;
+}
+
+.about-list {
+  padding-left: 18px;
+  margin: 10px 0 0;
+  color: var(--muted);
+}
