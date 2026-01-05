@@ -31,14 +31,14 @@ export const GUIDE_STEPS = [
   {
     id: 'company',
     title: '会社ネットワーク',
-    description: 'ONU->ルータ->PC/WEB を配置し、社内の通信経路を確認する。',
+    description: 'ONU->ルータ->PC を配置し、PC をサーバ用に切り替えて社内の通信経路を確認する。',
     isDone: (_store, flags) => flags.companyOK,
     isDoing: (store) => hasAnyEdge(store?.company?.edges)
   },
   {
     id: 'ftp',
     title: 'FTP 接続確認',
-    description: 'FTP サーバを追加し、PC の FTP アプリで接続が OK になることを確認する。',
+    description: 'サーバ用 PC に FTP サーバアプリを入れ、接続が OK になることを確認する。',
     isDone: (_store, flags) => flags.ftpOK,
     isDoing: (_store, flags) => flags.companyOK
   }
@@ -63,7 +63,7 @@ const EXPLANATION_STATES = [
     title: '会社ネットワーク構築フェーズです',
     lines: (summary) => [
       '自宅ネットワークは完了しています。',
-      '会社ネットワークは ONU->ルータ->PC/WEB の構成で社内通信が成立する設計です。',
+      '会社ネットワークは ONU->ルータ->PC の構成で社内通信が成立し、PC をサーバ用に切り替えてアプリを入れます。',
       `現在の進行度は ${summary.completed}/${summary.total} です。次は「${summary.nextTask}」を確認します。`
     ]
   },
@@ -74,7 +74,7 @@ const EXPLANATION_STATES = [
     title: 'FTP 接続の確認フェーズです',
     lines: (summary) => [
       '自宅/会社ネットワークは完了しています。',
-      'FTP サーバを追加し、PC 側の FTP アプリが接続可能になると完了扱いになります。',
+      'サーバ用 PC に FTP サーバアプリを入れて接続可能になると完了扱いになります。',
       `現在の進行度は ${summary.completed}/${summary.total} です。`
     ]
   },

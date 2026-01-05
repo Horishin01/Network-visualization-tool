@@ -13,9 +13,9 @@
 ・役割: ページ本体。
   - IndexPage.jsx: 学習スライドの切替。
   - TrainingPage.jsx: 指示書 + 日本地図（改定後レイアウト、Leaflet）。
-  - HomePage.jsx: 自宅ネットワーク（パレット/モニター/状態保存）。
-  - CompanyPage.jsx: 会社ネットワーク（パレット/モニター/FTPアプリ切替）。
-  - AboutPage.jsx: サイト概要。
+  - HomePage.jsx: 自宅ネットワーク（パレット/モニター/ルータ設定チュートリアル/外部公開なし）。
+  - CompanyPage.jsx: 会社ネットワーク（RT/PCパレット/PC用途切替/サーバアプリ操作/FTPは用意済みHTMLをアップロード）。
+  - AboutPage.jsx: サイト概要（用途/技術仕様/ライセンスのまとめ）。
 
 ■ JS/components/AppShell.jsx
 ・役割: 共通ヘッダー/フッター/ナビゲーション。

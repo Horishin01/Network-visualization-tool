@@ -14,7 +14,6 @@ import {
   FTP_DEPLOY_KEY,
   FTP_UPLOADS_KEY,
   PREVIEW_SLOT_ID,
-  createUploadEntry,
   findUpload,
   loadDeployments,
   loadUploads,
@@ -26,33 +25,243 @@ const STORAGE_KEY = 'network:company:v1';
 
 const DEVICE_TYPES = [
   { type: 'router', label: 'ルータ' },
-  { type: 'pc', label: 'PC' },
+  { type: 'pc', label: 'PC' }
+];
+
+const PALETTE_TYPES = [
+  { type: 'router', label: 'ルータ' },
+  { type: 'pc', label: 'PC' }
+];
+
+const PC_ROLES = [
+  { type: 'work', label: '仕事用' },
+  { type: 'server', label: 'サーバ用' }
+];
+
+const PC_ROLE_TYPES = PC_ROLES.map((role) => role.type);
+const PC_ROLE_LABELS = PC_ROLES.reduce((acc, role) => {
+  acc[role.type] = role.label;
+  return acc;
+}, {});
+
+const SERVER_APPS = [
   { type: 'web', label: 'WEB' },
   { type: 'ftp', label: 'FTP' },
   { type: 'dns', label: 'DNS' }
 ];
 
-const defaultState = {
+const SERVER_APP_TYPES = SERVER_APPS.map((app) => app.type);
+const SERVER_APP_LABELS = SERVER_APPS.reduce((acc, app) => {
+  acc[app.type] = app.label;
+  return acc;
+}, {});
+
+const PRESET_UPLOADS = [
+  {
+    id: 'preset-basic',
+    name: 'company-basic.html',
+    label: 'ベーシック',
+    description: '会社概要 + ニュース',
+    content: `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>会社HP - ベーシック</title>
+  <style>
+    body{font-family:"Hiragino Kaku Gothic ProN", Meiryo, sans-serif;margin:0;background:#f8f7f3;color:#1f2933}
+    header{background:#20323f;color:#fff;padding:24px}
+    main{padding:24px}
+    .hero{background:#fff;border:1px solid #d2d4d8;border-radius:12px;padding:20px;margin-bottom:18px}
+    .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+    .card{background:#fff;border:1px solid #d2d4d8;border-radius:10px;padding:12px}
+    footer{padding:18px;text-align:center;color:#6b6b6b}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Network Learning Co.</h1>
+    <p>信頼されるネットワーク支援を提供します。</p>
+  </header>
+  <main>
+    <section class="hero">
+      <h2>会社概要</h2>
+      <p>安定運用とセキュリティを軸に、企業ネットワークを支援します。</p>
+    </section>
+    <section class="grid">
+      <div class="card"><h3>サービス</h3><p>設計 / 運用 / 監視</p></div>
+      <div class="card"><h3>実績</h3><p>150社以上の導入支援</p></div>
+      <div class="card"><h3>ニュース</h3><p>新拠点を開設しました。</p></div>
+    </section>
+  </main>
+  <footer>© 2025 Network Learning Co.</footer>
+</body>
+</html>`
+  },
+  {
+    id: 'preset-services',
+    name: 'company-services.html',
+    label: 'サービス紹介',
+    description: '提供メニューを一覧化',
+    content: `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>会社HP - サービス</title>
+  <style>
+    body{font-family:"Yu Gothic", Meiryo, sans-serif;margin:0;background:#f2f5f9;color:#1f2933}
+    header{background:#0f4c81;color:#fff;padding:22px}
+    main{padding:22px}
+    .list{display:grid;gap:12px}
+    .item{background:#fff;border:1px solid #d8e1ea;border-radius:12px;padding:14px}
+    .item h3{margin:0 0 6px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Service Lineup</h1>
+    <p>企業ネットワークの運用をワンストップで支援</p>
+  </header>
+  <main class="list">
+    <div class="item"><h3>ネットワーク設計</h3><p>要件整理から構成設計まで。</p></div>
+    <div class="item"><h3>運用監視</h3><p>24h 監視と障害一次対応。</p></div>
+    <div class="item"><h3>セキュリティ</h3><p>脆弱性診断とポリシー整備。</p></div>
+  </main>
+</body>
+</html>`
+  },
+  {
+    id: 'preset-recruit',
+    name: 'company-recruit.html',
+    label: '採用案内',
+    description: '募集要項 + カルチャー',
+    content: `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>会社HP - 採用</title>
+  <style>
+    body{font-family:"Noto Sans JP", Meiryo, sans-serif;margin:0;background:#fff7f0;color:#2f2a24}
+    header{background:#d97a4b;color:#fff;padding:22px}
+    main{padding:22px}
+    .block{border:1px solid #e9d3c7;border-radius:12px;padding:14px;margin-bottom:12px;background:#fff}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>採用情報</h1>
+    <p>インフラエンジニアを募集しています。</p>
+  </header>
+  <main>
+    <div class="block"><h3>働き方</h3><p>リモート併用 / 学習支援あり</p></div>
+    <div class="block"><h3>募集要項</h3><p>ネットワーク設計・運用 / 経験者歓迎</p></div>
+    <div class="block"><h3>応募方法</h3><p>採用ページからエントリーしてください。</p></div>
+  </main>
+</body>
+</html>`
+  }
+];
+
+const createPresetEntry = (preset) => ({
+  id: preset.id,
+  name: preset.name,
+  size: preset.content.length,
+  type: 'text/html',
+  uploadedAt: new Date().toISOString(),
+  content: preset.content
+});
+
+const createDefaultState = () => ({
   devices: [],
   selectedId: null
+});
+
+const normalizeApps = (apps, preferredType = null) => {
+  const next = { web: false, ftp: false, dns: false };
+  if (apps && typeof apps === 'object') {
+    SERVER_APP_TYPES.forEach((type) => {
+      next[type] = !!apps[type];
+    });
+  }
+  let chosen = null;
+  if (preferredType && next[preferredType]) {
+    chosen = preferredType;
+  } else {
+    chosen = SERVER_APP_TYPES.find((type) => next[type]) || null;
+  }
+  SERVER_APP_TYPES.forEach((type) => {
+    next[type] = type === chosen;
+  });
+  return next;
+};
+
+const normalizeRole = (role, apps) => {
+  if (PC_ROLE_TYPES.includes(role)) {
+    return role;
+  }
+  const hasApps = Object.values(apps).some(Boolean);
+  return hasApps ? 'server' : 'work';
+};
+
+const normalizePcMeta = (meta, extraApps = {}) => {
+  const baseMeta = meta && typeof meta === 'object' ? meta : {};
+  const rawApps = {
+    ...(baseMeta.apps && typeof baseMeta.apps === 'object' ? baseMeta.apps : {})
+  };
+  if (baseMeta.ftpInstalled) {
+    rawApps.ftp = true;
+  }
+  Object.keys(extraApps).forEach((type) => {
+    if (SERVER_APP_TYPES.includes(type)) {
+      rawApps[type] = rawApps[type] || !!extraApps[type];
+    }
+  });
+  const preferred = SERVER_APP_TYPES.find((type) => extraApps[type])
+    || (baseMeta.ftpInstalled ? 'ftp' : null);
+  const apps = normalizeApps(rawApps, preferred);
+  const role = normalizeRole(baseMeta.role, apps);
+  return { ...baseMeta, role, apps };
 };
 
 const normalizeCompanyState = (value) => {
   if (!value || typeof value !== 'object') {
-    return { ...defaultState };
+    return createDefaultState();
   }
 
   const rawDevices = Array.isArray(value.devices) ? value.devices : [];
-  const devices = rawDevices
-    .filter((device) => device && typeof device === 'object')
-    .map((device) => {
-      const type = typeof device.type === 'string' ? device.type : 'pc';
-      return {
-        id: typeof device.id === 'string' ? device.id : createId(type),
-        type,
-        meta: device.meta && typeof device.meta === 'object' ? device.meta : undefined
+  const devices = [];
+  let hasRouter = false;
+
+  rawDevices.forEach((device) => {
+    if (!device || typeof device !== 'object') {
+      return;
+    }
+    const rawType = typeof device.type === 'string' ? device.type : 'pc';
+    const id = typeof device.id === 'string' ? device.id : createId(rawType === 'router' ? 'router' : 'pc');
+    let normalized = null;
+    if (rawType === 'router') {
+      if (hasRouter) {
+        return;
+      }
+      normalized = { id, type: 'router' };
+      hasRouter = true;
+    } else if (rawType === 'pc') {
+      normalized = { id, type: 'pc', meta: normalizePcMeta(device.meta) };
+    } else if (SERVER_APP_TYPES.includes(rawType)) {
+      normalized = {
+        id,
+        type: 'pc',
+        meta: normalizePcMeta(device.meta, { [rawType]: true })
       };
-    });
+    } else {
+      normalized = { id, type: 'pc', meta: normalizePcMeta(device.meta) };
+    }
+    if (normalized) {
+      devices.push(normalized);
+    }
+  });
 
   const selectedId = typeof value.selectedId === 'string' && devices.some((d) => d.id === value.selectedId)
     ? value.selectedId
@@ -63,7 +272,7 @@ const normalizeCompanyState = (value) => {
 
 export default function CompanyPage() {
   const [state, setState] = useState(() =>
-    normalizeCompanyState(loadState(STORAGE_KEY, defaultState))
+    normalizeCompanyState(loadState(STORAGE_KEY, createDefaultState()))
   );
   const [cables, setCables] = useState([]);
   const [uploads, setUploads] = useState(() => loadUploads());
@@ -78,24 +287,54 @@ export default function CompanyPage() {
     saveState(STORAGE_KEY, state);
   }, [state]);
 
-  const types = useMemo(() => state.devices.map((device) => device.type), [state.devices]);
-  const hasRouter = types.includes('router');
-  const hasPc = types.includes('pc');
-  const hasWeb = types.includes('web');
-  const hasServer = types.some((type) => ['web', 'ftp', 'dns'].includes(type));
-  const ftpServer = types.includes('ftp');
-  const ftpInstalled = state.devices.some((device) => device.type === 'pc' && device.meta?.ftpInstalled);
+  const pcs = useMemo(
+    () => state.devices.filter((device) => device.type === 'pc'),
+    [state.devices]
+  );
+  const hasRouter = state.devices.some((device) => device.type === 'router');
+  const hasPc = pcs.length > 0;
+  const serverPcs = useMemo(
+    () => pcs.filter((device) => device.meta?.role === 'server'),
+    [pcs]
+  );
+  const hasServerPc = serverPcs.length > 0;
+  const serverApps = useMemo(() => {
+    const flags = { web: false, ftp: false, dns: false };
+    serverPcs.forEach((device) => {
+      const apps = device.meta?.apps;
+      if (!apps) {
+        return;
+      }
+      SERVER_APP_TYPES.forEach((type) => {
+        if (apps[type]) {
+          flags[type] = true;
+        }
+      });
+    });
+    return flags;
+  }, [serverPcs]);
+  const hasWebServer = serverApps.web;
+  const hasFtpServer = serverApps.ftp;
+  const hasDnsServer = serverApps.dns;
+  const hasServer = hasWebServer || hasFtpServer || hasDnsServer;
+  const serverLabels = useMemo(() => {
+    if (!hasServerPc) {
+      return '未設定';
+    }
+    const labels = SERVER_APP_TYPES.filter((type) => serverApps[type]).map((type) => SERVER_APP_LABELS[type]);
+    return labels.length ? labels.join(' / ') : '未導入';
+  }, [serverApps, hasServerPc]);
 
   const companyEdges = useMemo(() => ({
     fiberOnu: hasRouter,
     onuRouter: hasRouter,
-    routerPc: hasPc || hasWeb,
-    routerFtp: ftpServer
-  }), [hasRouter, hasPc, hasWeb, ftpServer]);
+    routerPc: hasRouter && hasPc,
+    routerFtp: hasRouter && hasFtpServer
+  }), [hasRouter, hasPc, hasFtpServer]);
 
   const lanClients = useMemo(
-    () => state.devices.filter((device) => device.type !== 'router').length,
-    [state.devices]
+    () => pcs.length,
+    [pcs]
   );
 
   useEffect(() => {
@@ -139,12 +378,13 @@ export default function CompanyPage() {
 
   const status = {
     wan: hasRouter ? 'OK' : '未接続',
-    servers: hasServer ? 'OK' : '未配置',
-    ftp: ftpServer && hasPc && ftpInstalled ? 'OK' : '未確認'
+    servers: serverLabels,
+    ftp: hasRouter && hasFtpServer ? 'OK' : '未確認'
   };
 
   const ftpEnabled = status.ftp === 'OK';
-  const previewReady = hasRouter && hasWeb;
+  const previewReady = hasRouter && hasWebServer;
+  const ftpServerReady = hasRouter && hasFtpServer;
   const activeUpload = useMemo(
     () => findUpload(uploads, deployments[PREVIEW_SLOT_ID]),
     [uploads, deployments]
@@ -164,14 +404,19 @@ export default function CompanyPage() {
     if (!hasRouter) {
       return 'ルータを配置して WAN を OK にしてください。';
     }
-    if (!hasWeb) {
-      return 'WEB サーバを配置するとプレビューが表示されます。';
+    if (!hasServerPc) {
+      return 'PC をサーバ用に切り替えるとプレビュー準備ができます。';
+    }
+    if (!hasWebServer) {
+      return 'WEB サーバアプリを PC に入れるとプレビューが表示されます。';
     }
     if (!activeUpload) {
-      return 'FTP で HTML をアップロードして割り当ててください。';
+      return ftpServerReady
+        ? '用意された HTML を FTP でアップロードして割り当ててください。'
+        : 'FTP サーバアプリを入れると用意された HTML をアップロードできます。';
     }
     return '';
-  }, [hasRouter, hasWeb, activeUpload]);
+  }, [hasRouter, hasServerPc, hasWebServer, activeUpload, ftpServerReady]);
 
   useEffect(() => {
     if (previewUrlRef.current) {
@@ -198,11 +443,13 @@ export default function CompanyPage() {
   const explanation = useMemo(() => buildCompanyExplanation({
     hasRouter,
     hasPc,
+    hasServerPc,
     hasServer,
-    ftpServer,
-    ftpInstalled,
+    hasWebServer,
+    hasFtpServer,
+    hasDnsServer,
     status
-  }), [hasRouter, hasPc, hasServer, ftpServer, ftpInstalled, status]);
+  }), [hasRouter, hasPc, hasServerPc, hasServer, hasWebServer, hasFtpServer, hasDnsServer, status]);
 
   const routerDevice = useMemo(
     () => state.devices.find((device) => device.type === 'router') || null,
@@ -214,6 +461,9 @@ export default function CompanyPage() {
   );
 
   const selected = state.devices.find((device) => device.id === state.selectedId) || null;
+  const selectedRole = selected?.type === 'pc' && PC_ROLE_TYPES.includes(selected.meta?.role)
+    ? selected.meta.role
+    : (selected?.type === 'pc' ? 'work' : null);
 
   const updateCables = useCallback(() => {
     const stageEl = stageRef.current;
@@ -301,13 +551,21 @@ export default function CompanyPage() {
   }, [updateCables]);
 
   const handleAdd = (type) => {
-    const id = createId(type);
-    const meta = type === 'pc' ? { ftpInstalled: false } : undefined;
-    setState((prev) => ({
-      ...prev,
-      devices: [...prev.devices, { id, type, meta }],
-      selectedId: id
-    }));
+    setState((prev) => {
+      if (type === 'router') {
+        const existing = prev.devices.find((device) => device.type === 'router');
+        if (existing) {
+          return { ...prev, selectedId: existing.id };
+        }
+      }
+      const id = createId(type);
+      const meta = type === 'pc' ? { role: 'work', apps: normalizeApps() } : undefined;
+      return {
+        ...prev,
+        devices: [...prev.devices, { id, type, meta }],
+        selectedId: id
+      };
+    });
   };
 
   const handleSelect = (id) => {
@@ -329,22 +587,15 @@ export default function CompanyPage() {
     });
   };
 
-  const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
+  const handlePresetUpload = (preset) => {
+    if (!ftpEnabled) {
       return;
     }
-    try {
-      const entry = await createUploadEntry(file);
-      const next = [entry, ...uploads].slice(0, 12);
-      setUploads(next);
-      saveUploads(next);
-      setSelectedUploadId(entry.id);
-    } catch (error) {
-      console.warn('Failed to add upload', error);
-    } finally {
-      event.target.value = '';
-    }
+    const entry = createPresetEntry(preset);
+    const next = [entry, ...uploads.filter((item) => item.id !== entry.id)].slice(0, 12);
+    setUploads(next);
+    saveUploads(next);
+    setSelectedUploadId(entry.id);
   };
 
   const handleAssign = () => {
@@ -356,8 +607,11 @@ export default function CompanyPage() {
     saveDeployments(next);
   };
 
-  const toggleFtp = () => {
+  const setPcRole = (role) => {
     if (!selected || selected.type !== 'pc') {
+      return;
+    }
+    if (!PC_ROLE_TYPES.includes(role)) {
       return;
     }
     setState((prev) => ({
@@ -370,7 +624,40 @@ export default function CompanyPage() {
           ...device,
           meta: {
             ...device.meta,
-            ftpInstalled: !device.meta?.ftpInstalled
+            role,
+            apps: normalizeApps(device.meta?.apps)
+          }
+        };
+      })
+    }));
+  };
+
+  const toggleApp = (appType) => {
+    if (!selected || selected.type !== 'pc') {
+      return;
+    }
+    if (selected.meta?.role !== 'server') {
+      return;
+    }
+    if (!SERVER_APP_TYPES.includes(appType)) {
+      return;
+    }
+    setState((prev) => ({
+      ...prev,
+      devices: prev.devices.map((device) => {
+        if (device.id !== selected.id) {
+          return device;
+        }
+        const apps = normalizeApps(device.meta?.apps);
+        const isOn = apps[appType];
+        const nextApps = isOn ? normalizeApps(null) : normalizeApps({ [appType]: true }, appType);
+        return {
+          ...device,
+          meta: {
+            ...device.meta,
+            apps: {
+              ...nextApps
+            }
           }
         };
       })
@@ -385,13 +672,17 @@ export default function CompanyPage() {
       case 'router':
         return `WAN: ${status.wan} / サーバ: ${status.servers}`;
       case 'pc':
-        return `FTPアプリ: ${selected.meta?.ftpInstalled ? 'インストール済み' : '未インストール'}`;
-      case 'web':
-        return '社内 WEB サーバの想定です。';
-      case 'ftp':
-        return 'FTP サーバの想定です。';
-      case 'dns':
-        return 'DNS サーバの想定です。';
+        {
+          const roleType = PC_ROLE_TYPES.includes(selected.meta?.role) ? selected.meta.role : 'work';
+          const roleLabel = PC_ROLE_LABELS[roleType] || '仕事用';
+          const apps = SERVER_APP_TYPES
+            .filter((type) => selected.meta?.apps?.[type])
+            .map((type) => SERVER_APP_LABELS[type]);
+          if (roleType === 'server') {
+            return `用途: ${roleLabel} / サーバアプリ: ${apps.length ? apps.join(' / ') : '未導入'}`;
+          }
+          return `用途: ${roleLabel} / サーバアプリ: 未使用`;
+        }
       default:
         return '設定内容を準備しています。';
     }
@@ -400,6 +691,14 @@ export default function CompanyPage() {
   const renderDevice = (device) => {
     const label = DEVICE_TYPES.find((item) => item.type === device.type)?.label || device.type;
     const isActive = device.id === state.selectedId;
+    const roleType = device.type === 'pc' && PC_ROLE_TYPES.includes(device.meta?.role)
+      ? device.meta.role
+      : (device.type === 'pc' ? 'work' : null);
+    const roleLabel = roleType ? (PC_ROLE_LABELS[roleType] || '仕事用') : '';
+    const showApps = roleType === 'server';
+    const appTags = device.type === 'pc' && showApps
+      ? SERVER_APP_TYPES.filter((type) => device.meta?.apps?.[type])
+      : [];
     return (
       <div
         key={device.id}
@@ -411,7 +710,21 @@ export default function CompanyPage() {
           className="device-select"
           onClick={() => handleSelect(device.id)}
         >
-          {label}
+          <span className="device-label">{label}</span>
+          {device.type === 'pc' && (
+            <span className="device-apps">
+              <span className={`device-app device-role ${roleType || 'work'}`}>
+                {roleLabel}
+              </span>
+              {showApps && (appTags.length ? appTags.map((type) => (
+                <span key={`${device.id}-${type}`} className="device-app">
+                  {SERVER_APP_LABELS[type]}
+                </span>
+              )) : (
+                <span className="device-app muted">APPなし</span>
+              ))}
+            </span>
+          )}
         </button>
         <button
           type="button"
@@ -478,7 +791,7 @@ export default function CompanyPage() {
           <div className="palette">
             <h3 className="panel-title">機器パレット</h3>
             <div className="palette-grid">
-              {DEVICE_TYPES.map((item) => (
+              {PALETTE_TYPES.map((item) => (
                 <button
                   key={item.type}
                   type="button"
@@ -493,12 +806,46 @@ export default function CompanyPage() {
 
           <div className="monitor">
             <h3 className="panel-title">モニター</h3>
-            <div className="monitor-status">WAN: {status.wan} / FTP: {status.ftp}</div>
+            <div className="monitor-status">WAN: {status.wan} / サーバ: {status.servers}</div>
             <div className="monitor-detail">{renderDetail()}</div>
             {selected?.type === 'pc' && (
-              <button className="action-btn" type="button" onClick={toggleFtp}>
-                {selected.meta?.ftpInstalled ? 'FTPアプリを外す' : 'FTPアプリを入れる'}
-              </button>
+              <div className="pc-control">
+                <div className="role-control">
+                  <div className="app-title">PC用途</div>
+                  <div className="role-buttons">
+                    {PC_ROLES.map((role) => (
+                      <button
+                        key={role.type}
+                        className={`action-btn role-btn${selectedRole === role.type ? ' active' : ''}`}
+                        type="button"
+                        onClick={() => setPcRole(role.type)}
+                      >
+                        {role.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {selectedRole === 'server' && (
+                  <div className="app-control">
+                    <div className="app-title">サーバアプリ</div>
+                    <div className="app-buttons">
+                      {SERVER_APPS.map((app) => {
+                        const isOn = !!selected.meta?.apps?.[app.type];
+                        return (
+                          <button
+                            key={app.type}
+                            className={`action-btn app-btn${isOn ? ' active' : ''}`}
+                            type="button"
+                            onClick={() => toggleApp(app.type)}
+                          >
+                            {isOn ? `${app.label}を外す` : `${app.label}を入れる`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             <div className="preview-box">
               <div className="preview-head">
@@ -520,18 +867,25 @@ export default function CompanyPage() {
               )}
               <div className={`preview-controls${ftpEnabled ? '' : ' disabled'}`}>
                 <div className="preview-upload">
-                  <label className="action-btn file-btn">
-                    ローカルから追加
-                    <input
-                      type="file"
-                      accept=".html,.htm,.txt"
-                      onChange={handleUpload}
-                      disabled={!ftpEnabled}
-                      hidden
-                    />
-                  </label>
+                  <div className="preset-title">用意済みHTML</div>
+                  <div className="preset-grid">
+                    {PRESET_UPLOADS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        className="action-btn preset-btn"
+                        type="button"
+                        onClick={() => handlePresetUpload(preset)}
+                      >
+                        <span className="preset-name">{preset.label}</span>
+                        <span className="preset-desc">{preset.description}</span>
+                        <span className="preset-action">FTPでアップロード</span>
+                      </button>
+                    ))}
+                  </div>
                   <span className="preview-hint">
-                    {ftpEnabled ? 'FTP接続OK: HTMLを追加できます。' : 'FTP接続がOKになると使用できます。'}
+                    {ftpEnabled
+                      ? 'FTPサーバアプリ稼働中: 用意されたHTMLをアップロードできます。'
+                      : 'サーバ用PCでFTPサーバアプリを入れると使用できます。'}
                   </span>
                 </div>
                 <div className="preview-assign">

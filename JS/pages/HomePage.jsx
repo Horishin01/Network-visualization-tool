@@ -14,16 +14,96 @@ const DEVICE_TYPES = [
   { type: 'game', label: 'ゲーム機' }
 ];
 
-const defaultState = {
+const createDefaultRouterConfig = () => ({
+  loginId: 'admin',
+  loginPassword: 'admin',
+  credentialsIssuedAt: null,
+  wifi: {
+    ssid: 'HOME-WIFI',
+    key: 'home-12345678',
+    encryption: 'WPA2'
+  },
+  wifiUpdatedAt: null
+});
+
+const createDefaultState = () => ({
   devices: [],
-  selectedId: null
+  selectedId: null,
+  routerConfig: createDefaultRouterConfig()
+});
+
+const normalizeRouterConfig = (value) => {
+  const base = value && typeof value === 'object' ? value : {};
+  const wifi = base.wifi && typeof base.wifi === 'object' ? base.wifi : {};
+  const ssid = typeof wifi.ssid === 'string' && wifi.ssid.trim() ? wifi.ssid : 'HOME-WIFI';
+  const key = typeof wifi.key === 'string' && wifi.key.trim() ? wifi.key : 'home-12345678';
+  const encryption = typeof wifi.encryption === 'string' && wifi.encryption.trim()
+    ? wifi.encryption
+    : 'WPA2';
+  return {
+    loginId: typeof base.loginId === 'string' && base.loginId.trim() ? base.loginId : 'admin',
+    loginPassword: typeof base.loginPassword === 'string' && base.loginPassword.trim() ? base.loginPassword : 'admin',
+    credentialsIssuedAt: typeof base.credentialsIssuedAt === 'string' ? base.credentialsIssuedAt : null,
+    wifi: {
+      ssid,
+      key,
+      encryption
+    },
+    wifiUpdatedAt: typeof base.wifiUpdatedAt === 'string' ? base.wifiUpdatedAt : null
+  };
+};
+
+const normalizeHomeState = (value) => {
+  if (!value || typeof value !== 'object') {
+    return createDefaultState();
+  }
+
+  const rawDevices = Array.isArray(value.devices) ? value.devices : [];
+  const devices = rawDevices
+    .filter((device) => device && typeof device === 'object')
+    .map((device) => {
+      const type = typeof device.type === 'string' ? device.type : 'pc';
+      return {
+        id: typeof device.id === 'string' ? device.id : createId(type),
+        type
+      };
+    });
+
+  const selectedId = typeof value.selectedId === 'string' && devices.some((d) => d.id === value.selectedId)
+    ? value.selectedId
+    : (devices[0]?.id ?? null);
+
+  return {
+    devices,
+    selectedId,
+    routerConfig: normalizeRouterConfig(value.routerConfig)
+  };
 };
 
 export default function HomePage() {
-  const [state, setState] = useState(() => loadState(STORAGE_KEY, defaultState));
+  const [state, setState] = useState(() =>
+    normalizeHomeState(loadState(STORAGE_KEY, createDefaultState()))
+  );
   const [cables, setCables] = useState([]);
+  const [routerForm, setRouterForm] = useState(() => ({
+    loginId: state.routerConfig.loginId,
+    loginPassword: state.routerConfig.loginPassword,
+    ssid: state.routerConfig.wifi.ssid,
+    key: state.routerConfig.wifi.key,
+    encryption: state.routerConfig.wifi.encryption
+  }));
   const stageRef = useRef(null);
   const onuRef = useRef(null);
+
+  useEffect(() => {
+    setRouterForm({
+      loginId: state.routerConfig.loginId,
+      loginPassword: state.routerConfig.loginPassword,
+      ssid: state.routerConfig.wifi.ssid,
+      key: state.routerConfig.wifi.key,
+      encryption: state.routerConfig.wifi.encryption
+    });
+  }, [state.routerConfig]);
 
   useEffect(() => {
     saveState(STORAGE_KEY, state);
@@ -48,6 +128,9 @@ export default function HomePage() {
     wan: hasRouter ? 'OK' : '未接続',
     lan: hasRouter && hasClient ? 'OK' : '未接続'
   };
+  const credentialsDone = !!state.routerConfig.credentialsIssuedAt;
+  const wifiDone = !!state.routerConfig.wifiUpdatedAt;
+  const routerTutorialDone = credentialsDone && wifiDone;
 
   const explanation = useMemo(() => buildHomeExplanation({
     hasRouter,
@@ -153,12 +236,20 @@ export default function HomePage() {
   }, [updateCables]);
 
   const handleAdd = (type) => {
-    const id = createId(type);
-    setState((prev) => ({
-      ...prev,
-      devices: [...prev.devices, { id, type }],
-      selectedId: id
-    }));
+    setState((prev) => {
+      if (type === 'router') {
+        const existing = prev.devices.find((device) => device.type === 'router');
+        if (existing) {
+          return { ...prev, selectedId: existing.id };
+        }
+      }
+      const id = createId(type);
+      return {
+        ...prev,
+        devices: [...prev.devices, { id, type }],
+        selectedId: id
+      };
+    });
   };
 
   const handleSelect = (id) => {
@@ -180,13 +271,60 @@ export default function HomePage() {
     });
   };
 
+  const handleSaveCredentials = () => {
+    const loginId = routerForm.loginId.trim();
+    const loginPassword = routerForm.loginPassword.trim();
+    if (!loginId || !loginPassword) {
+      return;
+    }
+    setState((prev) => ({
+      ...prev,
+      routerConfig: {
+        ...prev.routerConfig,
+        loginId,
+        loginPassword,
+        credentialsIssuedAt: new Date().toISOString()
+      }
+    }));
+  };
+
+  const handleSaveWifi = () => {
+    const nextSsid = routerForm.ssid.trim();
+    const nextKey = routerForm.key.trim();
+    const nextEncryption = routerForm.encryption.trim();
+    if (!nextSsid || !nextKey) {
+      return;
+    }
+    setState((prev) => ({
+      ...prev,
+      routerConfig: {
+        ...prev.routerConfig,
+        wifi: {
+          ssid: nextSsid,
+          key: nextKey,
+          encryption: nextEncryption || 'WPA2'
+        },
+        wifiUpdatedAt: new Date().toISOString()
+      }
+    }));
+  };
+
+  const canSaveCredentials = routerForm.loginId.trim().length > 0
+    && routerForm.loginPassword.trim().length > 0;
+  const credentialsChanged = routerForm.loginId.trim() !== state.routerConfig.loginId
+    || routerForm.loginPassword.trim() !== state.routerConfig.loginPassword;
+  const canSaveWifi = routerForm.ssid.trim().length > 0 && routerForm.key.trim().length >= 8;
+  const wifiChanged = routerForm.ssid.trim() !== state.routerConfig.wifi.ssid
+    || routerForm.key.trim() !== state.routerConfig.wifi.key
+    || routerForm.encryption.trim() !== state.routerConfig.wifi.encryption;
+
   const renderDetail = () => {
     if (!selected) {
       return '機器をクリックすると設定内容を表示します。';
     }
     switch (selected.type) {
       case 'router':
-        return `WAN: ${status.wan} / LAN: ${status.lan}`;
+        return `WAN: ${status.wan} / LAN: ${status.lan} / 認証: ${credentialsDone ? '設定済み' : '未設定'} / Wi-Fi: ${wifiDone ? '設定済み' : '未設定'}`;
       case 'pc':
         return `ブラウザ接続: ${status.lan === 'OK' ? 'OK' : '未接続'}`;
       case 'phone':
@@ -298,6 +436,117 @@ export default function HomePage() {
             <h3 className="panel-title">モニター</h3>
             <div className="monitor-status">WAN: {status.wan} / LAN: {status.lan}</div>
             <div className="monitor-detail">{renderDetail()}</div>
+            {selected?.type === 'router' && (
+              <div className="router-settings">
+                <div className="router-settings-header">
+                  <span>ルータ設定画面</span>
+                  <span className={`router-settings-badge ${routerTutorialDone ? 'done' : 'todo'}`}>
+                    {routerTutorialDone ? '完了' : '未完了'}
+                  </span>
+                </div>
+                <div className="router-settings-section">
+                  <div className="router-section-title">RTネットワーク設定</div>
+                  <div className="router-task">
+                    <div className="router-task-head">
+                      <span>1. ログインID / パスワード変更</span>
+                      <span className={`router-task-badge ${credentialsDone ? 'done' : 'todo'}`}>
+                        {credentialsDone ? '完了' : '未完了'}
+                      </span>
+                    </div>
+                    <div className="router-task-body">
+                      <label className="router-input">
+                        <span>ログインID</span>
+                        <input
+                          type="text"
+                          value={routerForm.loginId}
+                          onChange={(event) => setRouterForm((prev) => ({
+                            ...prev,
+                            loginId: event.target.value
+                          }))}
+                        />
+                      </label>
+                      <label className="router-input">
+                        <span>パスワード</span>
+                        <input
+                          type="text"
+                          value={routerForm.loginPassword}
+                          onChange={(event) => setRouterForm((prev) => ({
+                            ...prev,
+                            loginPassword: event.target.value
+                          }))}
+                        />
+                      </label>
+                      <button
+                        className="action-btn"
+                        type="button"
+                        onClick={handleSaveCredentials}
+                        disabled={!canSaveCredentials || !credentialsChanged}
+                      >
+                        変更を保存
+                      </button>
+                    </div>
+                  </div>
+                  <div className="router-task">
+                    <div className="router-task-head">
+                      <span>2. SSID / 暗号化キー変更</span>
+                      <span className={`router-task-badge ${wifiDone ? 'done' : 'todo'}`}>
+                        {wifiDone ? '完了' : '未完了'}
+                      </span>
+                    </div>
+                    <div className="router-task-body">
+                      <label className="router-input">
+                        <span>SSID</span>
+                        <input
+                          type="text"
+                          value={routerForm.ssid}
+                          onChange={(event) => setRouterForm((prev) => ({
+                            ...prev,
+                            ssid: event.target.value
+                          }))}
+                        />
+                      </label>
+                      <label className="router-input">
+                        <span>暗号化キー</span>
+                        <input
+                          type="text"
+                          value={routerForm.key}
+                          onChange={(event) => setRouterForm((prev) => ({
+                            ...prev,
+                            key: event.target.value
+                          }))}
+                          placeholder="8文字以上"
+                        />
+                      </label>
+                      <label className="router-input">
+                        <span>暗号化方式</span>
+                        <select
+                          value={routerForm.encryption}
+                          onChange={(event) => setRouterForm((prev) => ({
+                            ...prev,
+                            encryption: event.target.value
+                          }))}
+                        >
+                          <option value="WPA2">WPA2</option>
+                          <option value="WPA3">WPA3</option>
+                          <option value="WPA2/WPA3">WPA2/WPA3</option>
+                        </select>
+                      </label>
+                      <button
+                        className="action-btn"
+                        type="button"
+                        onClick={handleSaveWifi}
+                        disabled={!canSaveWifi || !wifiChanged}
+                      >
+                        変更を保存
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="router-settings-note">
+                  手順 1 → 2 の順で設定を完了してください。
+                </div>
+              </div>
+            )}
           </div>
         </aside>
       </section>

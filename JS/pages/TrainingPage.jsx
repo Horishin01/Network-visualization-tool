@@ -1,23 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import AppShell from '../components/AppShell.jsx';
 import * as L from 'leaflet';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import homeIcon from '../../img/icons/home.svg';
+import companyIcon from '../../img/icons/company.svg';
 import { AppStore } from '../utils/appStore.js';
 import { buildTrainingGuide } from '../utils/trainingGuide.js';
-
-const DEFAULT_ICON = L.icon({
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
 
 const goTo = (path) => {
   window.location.href = path;
 };
+
+const HOME_ICON = L.icon({
+  iconUrl: homeIcon,
+  iconSize: [42, 42],
+  iconAnchor: [21, 42],
+  popupAnchor: [0, -38],
+  className: 'map-icon map-icon--home'
+});
+
+const COMPANY_ICON = L.icon({
+  iconUrl: companyIcon,
+  iconSize: [42, 42],
+  iconAnchor: [21, 42],
+  popupAnchor: [0, -38],
+  className: 'map-icon map-icon--company'
+});
 
 export default function TrainingPage() {
   const [guide, setGuide] = useState(() => buildTrainingGuide(AppStore.get()));
@@ -30,8 +37,6 @@ export default function TrainingPage() {
     if (mapElement._leaflet_id) {
       mapElement._leaflet_id = null;
     }
-
-    L.Marker.prototype.options.icon = DEFAULT_ICON;
 
     const INITIAL_Z = 5;
     const JAPAN_BOUNDS = L.latLngBounds([24.0, 122.0], [46.2, 146.0]);
@@ -48,12 +53,12 @@ export default function TrainingPage() {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    L.marker([35.6812, 139.7671], { title: 'Tokyo' })
+    L.marker([35.6812, 139.7671], { title: '自宅', icon: HOME_ICON })
       .addTo(map)
       .bindTooltip('自宅', { direction: 'top', offset: [0, -8] })
       .on('click', () => goTo('/HTML/home.html'));
 
-    L.marker([33.5902, 130.4017], { title: 'Fukuoka' })
+    L.marker([33.5902, 130.4017], { title: '会社', icon: COMPANY_ICON })
       .addTo(map)
       .bindTooltip('会社', { direction: 'top', offset: [0, -8] })
       .on('click', () => goTo('/HTML/company.html'));
@@ -93,7 +98,7 @@ export default function TrainingPage() {
           <h3 className="panel-title">チュートリアル（指示書）</h3>
           <ol className="panel-list">
             <li>自宅ネットワークを組み立て、ブラウザ接続を確認する。</li>
-            <li>会社ネットワークを組み立て、FTP/WEB の流れを確認する。</li>
+            <li>会社ネットワークを組み立て、PC をサーバ用に切り替えて構成を確認する。</li>
             <li>地図から拠点を選び、構成の違いを比較する。</li>
           </ol>
           <div className="progress-box">

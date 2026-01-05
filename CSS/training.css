@@ -107,6 +107,26 @@
   background: #f7f9fc;
 }
 
+.map-icon {
+  border-radius: 12px;
+  padding: 4px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2px solid var(--ink);
+  object-fit: contain;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.map-icon--home {
+  background: #e6eff6;
+  border-color: #3b6f89;
+}
+
+.map-icon--company {
+  background: #e2efe3;
+  border-color: #4a7a42;
+}
+
 .training-note {
   margin-top: 14px;
   border: 2px solid var(--ink);
