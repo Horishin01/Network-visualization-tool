@@ -181,7 +181,11 @@ const createPresetEntry = (preset) => ({
 
 const createDefaultState = () => ({
   devices: [],
-  selectedId: null
+  selectedId: null,
+  dnsConfig: {
+    domain: 'example.local',
+    savedAt: null
+  }
 });
 
 const normalizeApps = (apps, preferredType = null) => {
@@ -273,7 +277,16 @@ const normalizeCompanyState = (value) => {
     ? value.selectedId
     : (devices[0]?.id ?? null);
 
-  return { devices, selectedId };
+  const dnsConfig = value.dnsConfig && typeof value.dnsConfig === 'object'
+    ? {
+        domain: typeof value.dnsConfig.domain === 'string' && value.dnsConfig.domain.trim()
+          ? value.dnsConfig.domain.trim()
+          : 'example.local',
+        savedAt: typeof value.dnsConfig.savedAt === 'string' ? value.dnsConfig.savedAt : null
+      }
+    : { domain: 'example.local', savedAt: null };
+
+  return { devices, selectedId, dnsConfig };
 };
 
 export default function CompanyPage() {
@@ -285,6 +298,9 @@ export default function CompanyPage() {
   const [deployments, setDeployments] = useState(() => loadDeployments());
   const [selectedUploadId, setSelectedUploadId] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [dnsForm, setDnsForm] = useState(() => ({
+    domain: 'example.local'
+  }));
   const stageRef = useRef(null);
   const onuRef = useRef(null);
   const previewUrlRef = useRef(null);
@@ -292,6 +308,9 @@ export default function CompanyPage() {
   useEffect(() => {
     saveState(STORAGE_KEY, state);
   }, [state]);
+  useEffect(() => {
+    setDnsForm({ domain: state.dnsConfig.domain });
+  }, [state.dnsConfig]);
 
   const pcs = useMemo(
     () => state.devices.filter((device) => device.type === 'pc'),
@@ -304,6 +323,11 @@ export default function CompanyPage() {
     [pcs]
   );
   const hasServerPc = serverPcs.length > 0;
+  const workPcs = useMemo(
+    () => pcs.filter((device) => device.meta?.role !== 'server'),
+    [pcs]
+  );
+  const hasWorkPc = workPcs.length > 0;
   const serverApps = useMemo(() => {
     const flags = { web: false, ftp: false, dns: false };
     serverPcs.forEach((device) => {
@@ -395,6 +419,7 @@ export default function CompanyPage() {
     () => findUpload(uploads, deployments[PREVIEW_SLOT_ID]),
     [uploads, deployments]
   );
+  const allowUploadFromClient = ftpEnabled && hasWorkPc;
 
   const previewBadge = useMemo(() => {
     if (!previewReady) {
@@ -485,6 +510,24 @@ export default function CompanyPage() {
   const selectedRole = selected?.type === 'pc' && PC_ROLE_TYPES.includes(selected.meta?.role)
     ? selected.meta.role
     : (selected?.type === 'pc' ? 'work' : null);
+  const selectedIsServer = selectedRole === 'server';
+  const selectedIsRouter = selected?.type === 'router';
+  const canSaveDns = dnsForm.domain.trim().length > 0
+    && dnsForm.domain.trim() !== state.dnsConfig.domain;
+
+  const handleSaveDns = () => {
+    const domain = dnsForm.domain.trim();
+    if (!domain) {
+      return;
+    }
+    setState((prev) => ({
+      ...prev,
+      dnsConfig: {
+        domain,
+        savedAt: new Date().toISOString()
+      }
+    }));
+  };
 
   const updateCables = useCallback(() => {
     const stageEl = stageRef.current;
@@ -769,7 +812,6 @@ export default function CompanyPage() {
         <aside className="panel">
           <h3 className="panel-title">解説（指示書）</h3>
           <div className="explain-title">{explanation.title}</div>
-          <div className="explain-status">現在の状況: {explanation.statusLabel}</div>
           <div className="explain-body">
             {explanation.lines.map((line, index) => (
               <p key={`company-explain-${index}`} className="explain-line">
@@ -897,73 +939,122 @@ export default function CompanyPage() {
                 )}
               </div>
             )}
+            {hasDnsServer && !selectedIsRouter && (
+              <div className="dns-settings">
+                <div className="dns-head">
+                  <span>DNS ドメイン設定</span>
+                  <span className={`dns-badge ${state.dnsConfig.savedAt ? 'done' : 'todo'}`}>
+                    {state.dnsConfig.savedAt ? '保存済み' : '未保存'}
+                  </span>
+                </div>
+                <label className="dns-input">
+                  <span>ドメイン名</span>
+                  <input
+                    type="text"
+                    value={dnsForm.domain}
+                    onChange={(event) => setDnsForm({ domain: event.target.value })}
+                    placeholder="example.local"
+                  />
+                </label>
+                <button
+                  className="action-btn"
+                  type="button"
+                  onClick={handleSaveDns}
+                  disabled={!canSaveDns}
+                >
+                  設定を保存
+                </button>
+              </div>
+            )}
             <div className="preview-box">
               <div className="preview-head">
                 <span>会社HPプレビュー</span>
                 <span className={`preview-badge ${previewBadge.state}`}>{previewBadge.label}</span>
               </div>
-              {!previewReady && (
-                <div className="preview-lock">{previewMessage}</div>
-              )}
-              {previewReady && !activeUpload && (
-                <div className="preview-empty">{previewMessage}</div>
-              )}
-              {previewReady && activeUpload && (
-                <iframe
-                  className="preview-iframe"
-                  title="会社HPプレビュー"
-                  src={previewUrl}
-                />
-              )}
-              <div className={`preview-controls${ftpEnabled ? '' : ' disabled'}`}>
-                <div className="preview-upload">
-                  <div className="preset-title">用意済みHTML</div>
-                  <div className="preset-grid">
-                    {PRESET_UPLOADS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        className="action-btn preset-btn"
-                        type="button"
-                        onClick={() => handlePresetUpload(preset)}
-                      >
-                        <span className="preset-name">{preset.label}</span>
-                        <span className="preset-desc">{preset.description}</span>
-                        <span className="preset-action">FTPでアップロード</span>
-                      </button>
-                    ))}
-                  </div>
-                  <span className="preview-hint">
-                    {ftpEnabled
-                      ? 'FTPサーバアプリ稼働中: 用意されたHTMLをアップロードできます。'
-                      : 'サーバ用PCでFTPサーバアプリを入れると使用できます。'}
-                  </span>
+              {selectedIsRouter ? (
+                <div className="preview-lock">
+                  HP/FTP 操作は PC 側で行います。仕事用 PC を選択してください。
                 </div>
-                <div className="preview-assign">
-                  <select
-                    className="preview-select"
-                    value={selectedUploadId}
-                    onChange={(event) => setSelectedUploadId(event.target.value)}
-                    disabled={!ftpEnabled || uploads.length === 0}
-                  >
-                    <option value="">
-                      {uploads.length ? 'アップロードを選択' : 'アップロードがありません'}
-                    </option>
-                    {uploads.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="action-btn"
-                    type="button"
-                    onClick={handleAssign}
-                    disabled={!ftpEnabled || !selectedUploadId}
-                  >
-                    割り当てる
-                  </button>
-                </div>
-              </div>
+              ) : (
+                <>
+                  {!hasWorkPc && (
+                    <div className="preview-lock">
+                      仕事用 PC を 1 台配置すると FTP アップロードが行えます。
+                    </div>
+                  )}
+                  {hasWorkPc && selectedIsServer && (
+                    <div className="preview-lock">
+                      FTP アップロードは仕事用 PC から行います。仕事用 PC を選択してください。
+                    </div>
+                  )}
+                  {hasWorkPc && !selectedIsServer && (
+                    <>
+                      {!previewReady && (
+                        <div className="preview-lock">{previewMessage}</div>
+                      )}
+                      {previewReady && !activeUpload && (
+                        <div className="preview-empty">{previewMessage}</div>
+                      )}
+                      {previewReady && activeUpload && (
+                        <iframe
+                          className="preview-iframe"
+                          title="会社HPプレビュー"
+                          src={previewUrl}
+                        />
+                      )}
+                      <div className={`preview-controls${allowUploadFromClient ? '' : ' disabled'}`}>
+                        <div className="preview-upload">
+                          <div className="preset-title">用意済みHTML</div>
+                          <div className="preset-grid">
+                            {PRESET_UPLOADS.map((preset) => (
+                              <button
+                                key={preset.id}
+                                className="action-btn preset-btn"
+                                type="button"
+                                onClick={() => handlePresetUpload(preset)}
+                              >
+                                <span className="preset-name">{preset.label}</span>
+                                <span className="preset-desc">{preset.description}</span>
+                                <span className="preset-action">FTPでアップロード</span>
+                              </button>
+                            ))}
+                          </div>
+                          <span className="preview-hint">
+                            {allowUploadFromClient
+                              ? 'FTPサーバ稼働中: 仕事用 PC から HTML をアップロードできます。'
+                              : 'サーバ用PCでFTPサーバアプリを入れ、仕事用 PC を配置すると使用できます。'}
+                          </span>
+                        </div>
+                        <div className="preview-assign">
+                          <select
+                            className="preview-select"
+                            value={selectedUploadId}
+                            onChange={(event) => setSelectedUploadId(event.target.value)}
+                            disabled={!allowUploadFromClient || uploads.length === 0}
+                          >
+                            <option value="">
+                              {uploads.length ? 'アップロードを選択' : 'アップロードがありません'}
+                            </option>
+                            {uploads.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className="action-btn"
+                            type="button"
+                            onClick={handleAssign}
+                            disabled={!allowUploadFromClient || !selectedUploadId}
+                          >
+                            割り当てる
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </aside>

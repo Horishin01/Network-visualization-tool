@@ -36,7 +36,7 @@ button {
 }
 
 .sheet {
-  width: min(1200px, 92vw);
+  width: min(1400px, 96vw);
   margin: 24px auto;
   background: rgba(255, 255, 255, 0.86);
   border: 2px solid var(--ink);

@@ -418,6 +418,56 @@
   background: #fff;
 }
 
+.dns-settings {
+  margin-top: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.dns-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.dns-badge {
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+}
+
+.dns-badge.done {
+  background: #e2efe3;
+  border-color: #4a7a42;
+  color: #2b4d24;
+}
+
+.dns-badge.todo {
+  background: #fff1cf;
+  border-color: #b3851c;
+  color: #6b4a0f;
+}
+
+.dns-input {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.dns-input input {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+}
+
 @media (max-width: 1100px) {
   .sim-grid {
     grid-template-columns: 1fr;

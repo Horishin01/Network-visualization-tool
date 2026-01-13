@@ -98,6 +98,12 @@ export default function HomePage() {
     key: state.routerConfig.wifi.key,
     encryption: state.routerConfig.wifi.encryption
   }));
+  const [pcView, setPcView] = useState({
+    mode: 'desktop',
+    url: '',
+    input: 'http://192.168.1.1',
+    error: ''
+  });
   const stageRef = useRef(null);
   const onuRef = useRef(null);
 
@@ -238,6 +244,17 @@ export default function HomePage() {
   }, [updateCables]);
 
   useEffect(() => {
+    if (selected?.type === 'pc') {
+      setPcView({
+        mode: 'desktop',
+        url: '',
+        input: 'http://192.168.1.1',
+        error: ''
+      });
+    }
+  }, [selected?.id, selected?.type]);
+
+  useEffect(() => {
     window.addEventListener('resize', updateCables);
     return () => {
       window.removeEventListener('resize', updateCables);
@@ -326,7 +343,6 @@ export default function HomePage() {
   const wifiChanged = routerForm.ssid.trim() !== state.routerConfig.wifi.ssid
     || routerForm.key.trim() !== state.routerConfig.wifi.key
     || routerForm.encryption.trim() !== state.routerConfig.wifi.encryption;
-
   const renderDetail = () => {
     if (!selected) {
       return '機器をクリックすると設定内容を表示します。';
@@ -345,6 +361,239 @@ export default function HomePage() {
       default:
         return '設定内容を準備しています。';
     }
+  };
+
+  const normalizeTargetUrl = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return '';
+    }
+    return trimmed.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  };
+
+  const handleNavigateUrl = () => {
+    const target = normalizeTargetUrl(pcView.input);
+    if (target === '192.168.1.1') {
+      setPcView((prev) => ({
+        ...prev,
+        mode: 'router',
+        url: prev.input,
+        error: ''
+      }));
+      return;
+    }
+    setPcView((prev) => ({
+      ...prev,
+      mode: 'browser',
+      url: prev.input,
+      error: '接続できませんでした。URL を確認してください。'
+    }));
+  };
+
+  const renderPcSimulator = () => {
+    if (!selected || selected.type !== 'pc') {
+      return null;
+    }
+    const showRouterUI = pcView.mode === 'router';
+    return (
+      <div className="pc-simulator">
+        <div className="pc-window">
+          <div className="pc-window-titlebar">
+            <span className="pc-window-title">Windows PC</span>
+            <span className="pc-window-actions" aria-hidden="true">
+              <span className="dot red" />
+              <span className="dot yellow" />
+              <span className="dot green" />
+            </span>
+          </div>
+          {pcView.mode === 'desktop' && (
+            <div className="pc-desktop">
+              <div className="desktop-icons">
+                <button
+                  type="button"
+                  className="desktop-icon"
+                  onClick={() => setPcView((prev) => ({ ...prev, mode: 'browser', error: '', url: '' }))}
+                >
+                  <span className="icon-image" aria-hidden="true">🌐</span>
+                  <span className="icon-label">検索エンジン</span>
+                </button>
+              </div>
+            </div>
+          )}
+          {pcView.mode !== 'desktop' && (
+            <div className="pc-browser">
+              <div className="pc-window-toolbar">
+                <span className="pc-toolbar-label">URL:</span>
+                <input
+                  className="pc-toolbar-input"
+                  type="text"
+                  value={pcView.input}
+                  onChange={(event) => setPcView((prev) => ({
+                    ...prev,
+                    input: event.target.value
+                  }))}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleNavigateUrl();
+                    }
+                  }}
+                />
+                <button
+                  className="buffalo-action"
+                  type="button"
+                  onClick={handleNavigateUrl}
+                >
+                  移動
+                </button>
+              </div>
+              {!showRouterUI && (
+                <div className="pc-browser-body">
+                  {pcView.error ? (
+                    <div className="pc-browser-error">{pcView.error}</div>
+                  ) : (() => {
+                    const online = status.wan === 'OK' && status.lan === 'OK';
+                    if (online) {
+                      return (
+                        <div className="pc-browser-blank">
+                          ようこそ！インターネットに接続されています。URL に 192.168.1.1 を入力して設定画面へ進みます。
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="pc-browser-error">
+                        インターネットに接続できていません。配線とルータ設定を確認してください。
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+              {showRouterUI && (
+                <div className="buffalo-frame">
+                  <div className="buffalo-header">
+                    <div>
+                      <div className="buffalo-title">AirHome ルータ設定センター</div>
+                      <div className="buffalo-sub">家庭用ルータの設定をまとめて管理します</div>
+                    </div>
+                    <div className="buffalo-badges">
+                      <span className={`buffalo-badge ${credentialsDone ? 'done' : 'todo'}`}>
+                        管理者: {credentialsDone ? '変更済み' : '未変更'}
+                      </span>
+                      <span className={`buffalo-badge ${wifiDone ? 'done' : 'todo'}`}>
+                        Wi-Fi: {wifiDone ? '設定済み' : '未設定'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="buffalo-body">
+                    <div className="buffalo-section">
+                      <div className="buffalo-section-head">
+                        <div>
+                          <div className="buffalo-section-title">管理者パスワード</div>
+                          <div className="buffalo-section-sub">ルータへのログイン情報を変更します</div>
+                        </div>
+                        <span className={`buffalo-chip ${credentialsDone ? 'done' : 'todo'}`}>
+                          {credentialsDone ? '完了' : '未完了'}
+                        </span>
+                      </div>
+                      <div className="buffalo-grid">
+                        <label className="buffalo-field">
+                          <span>ログインID</span>
+                          <input
+                            type="text"
+                            value={routerForm.loginId}
+                            onChange={(event) => setRouterForm((prev) => ({
+                              ...prev,
+                              loginId: event.target.value
+                            }))}
+                          />
+                        </label>
+                        <label className="buffalo-field">
+                          <span>パスワード</span>
+                          <input
+                            type="password"
+                            value={routerForm.loginPassword}
+                            onChange={(event) => setRouterForm((prev) => ({
+                              ...prev,
+                              loginPassword: event.target.value
+                            }))}
+                          />
+                        </label>
+                      </div>
+                      <button
+                        className="buffalo-action"
+                        type="button"
+                        onClick={handleSaveCredentials}
+                        disabled={!canSaveCredentials || !credentialsChanged}
+                      >
+                        変更を保存
+                      </button>
+                    </div>
+
+                    <div className="buffalo-section">
+                      <div className="buffalo-section-head">
+                        <div>
+                          <div className="buffalo-section-title">無線LAN設定</div>
+                          <div className="buffalo-section-sub">SSID と暗号化キーを設定します</div>
+                        </div>
+                        <span className={`buffalo-chip ${wifiDone ? 'done' : 'todo'}`}>
+                          {wifiDone ? '完了' : '未完了'}
+                        </span>
+                      </div>
+                      <div className="buffalo-grid">
+                        <label className="buffalo-field">
+                          <span>SSID</span>
+                          <input
+                            type="text"
+                            value={routerForm.ssid}
+                            onChange={(event) => setRouterForm((prev) => ({
+                              ...prev,
+                              ssid: event.target.value
+                            }))}
+                          />
+                        </label>
+                        <label className="buffalo-field">
+                          <span>暗号化キー</span>
+                          <input
+                            type="password"
+                            value={routerForm.key}
+                            onChange={(event) => setRouterForm((prev) => ({
+                              ...prev,
+                              key: event.target.value
+                            }))}
+                            placeholder="8文字以上"
+                          />
+                        </label>
+                        <label className="buffalo-field">
+                          <span>暗号化方式</span>
+                          <select
+                            value={routerForm.encryption}
+                            onChange={(event) => setRouterForm((prev) => ({
+                              ...prev,
+                              encryption: event.target.value
+                            }))}
+                          >
+                            <option value="WPA2">WPA2</option>
+                            <option value="WPA3">WPA3</option>
+                            <option value="WPA2/WPA3">WPA2/WPA3</option>
+                          </select>
+                        </label>
+                      </div>
+                      <button
+                        className="buffalo-action"
+                        type="button"
+                        onClick={handleSaveWifi}
+                        disabled={!canSaveWifi || !wifiChanged}
+                      >
+                        変更を保存
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const renderDevice = (device) => {
@@ -385,7 +634,6 @@ export default function HomePage() {
         <aside className="panel">
           <h3 className="panel-title">解説（指示書）</h3>
           <div className="explain-title">{explanation.title}</div>
-          <div className="explain-status">現在の状況: {explanation.statusLabel}</div>
           <div className="explain-body">
             {explanation.lines.map((line, index) => (
               <p key={`home-explain-${index}`} className="explain-line">
@@ -474,117 +722,7 @@ export default function HomePage() {
             <h3 className="panel-title">モニター</h3>
             <div className="monitor-status">WAN: {status.wan} / LAN: {status.lan}</div>
             <div className="monitor-detail">{renderDetail()}</div>
-            {selected?.type === 'router' && (
-              <div className="router-settings">
-                <div className="router-settings-header">
-                  <span>ルータ設定画面</span>
-                  <span className={`router-settings-badge ${routerTutorialDone ? 'done' : 'todo'}`}>
-                    {routerTutorialDone ? '完了' : '未完了'}
-                  </span>
-                </div>
-                <div className="router-settings-section">
-                  <div className="router-section-title">RTネットワーク設定</div>
-                  <div className="router-task">
-                    <div className="router-task-head">
-                      <span>1. ログインID / パスワード変更</span>
-                      <span className={`router-task-badge ${credentialsDone ? 'done' : 'todo'}`}>
-                        {credentialsDone ? '完了' : '未完了'}
-                      </span>
-                    </div>
-                    <div className="router-task-body">
-                      <label className="router-input">
-                        <span>ログインID</span>
-                        <input
-                          type="text"
-                          value={routerForm.loginId}
-                          onChange={(event) => setRouterForm((prev) => ({
-                            ...prev,
-                            loginId: event.target.value
-                          }))}
-                        />
-                      </label>
-                      <label className="router-input">
-                        <span>パスワード</span>
-                        <input
-                          type="text"
-                          value={routerForm.loginPassword}
-                          onChange={(event) => setRouterForm((prev) => ({
-                            ...prev,
-                            loginPassword: event.target.value
-                          }))}
-                        />
-                      </label>
-                      <button
-                        className="action-btn"
-                        type="button"
-                        onClick={handleSaveCredentials}
-                        disabled={!canSaveCredentials || !credentialsChanged}
-                      >
-                        変更を保存
-                      </button>
-                    </div>
-                  </div>
-                  <div className="router-task">
-                    <div className="router-task-head">
-                      <span>2. SSID / 暗号化キー変更</span>
-                      <span className={`router-task-badge ${wifiDone ? 'done' : 'todo'}`}>
-                        {wifiDone ? '完了' : '未完了'}
-                      </span>
-                    </div>
-                    <div className="router-task-body">
-                      <label className="router-input">
-                        <span>SSID</span>
-                        <input
-                          type="text"
-                          value={routerForm.ssid}
-                          onChange={(event) => setRouterForm((prev) => ({
-                            ...prev,
-                            ssid: event.target.value
-                          }))}
-                        />
-                      </label>
-                      <label className="router-input">
-                        <span>暗号化キー</span>
-                        <input
-                          type="text"
-                          value={routerForm.key}
-                          onChange={(event) => setRouterForm((prev) => ({
-                            ...prev,
-                            key: event.target.value
-                          }))}
-                          placeholder="8文字以上"
-                        />
-                      </label>
-                      <label className="router-input">
-                        <span>暗号化方式</span>
-                        <select
-                          value={routerForm.encryption}
-                          onChange={(event) => setRouterForm((prev) => ({
-                            ...prev,
-                            encryption: event.target.value
-                          }))}
-                        >
-                          <option value="WPA2">WPA2</option>
-                          <option value="WPA3">WPA3</option>
-                          <option value="WPA2/WPA3">WPA2/WPA3</option>
-                        </select>
-                      </label>
-                      <button
-                        className="action-btn"
-                        type="button"
-                        onClick={handleSaveWifi}
-                        disabled={!canSaveWifi || !wifiChanged}
-                      >
-                        変更を保存
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="router-settings-note">
-                  手順 1 → 2 の順で設定を完了してください。
-                </div>
-              </div>
-            )}
+            {renderPcSimulator()}
           </div>
         </aside>
       </section>

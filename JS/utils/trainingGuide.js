@@ -1,3 +1,6 @@
+import { INSTRUCTION_TEXT } from '../content/instructions.js';
+import { renderLines, renderTemplate } from './instructionEngine.js';
+
 const hasAnyEdge = (edges) => edges && Object.values(edges).some(Boolean);
 
 const badgeFrom = (done, doing) => {
@@ -20,95 +23,53 @@ const getStatusFlags = (store) => {
   return { homeOK, companyOK, ftpOK };
 };
 
-export const GUIDE_STEPS = [
-  {
-    id: 'home',
-    title: '自宅ネットワーク',
-    description: 'ONU->ルータ->PC を配置し、PC のブラウザ接続が OK になることを確認する。',
+const TRAINING_STEP_RULES = {
+  home: {
     isDone: (_store, flags) => flags.homeOK,
     isDoing: (store) => hasAnyEdge(store?.home?.edges)
   },
-  {
-    id: 'company',
-    title: '会社ネットワーク',
-    description: 'ONU->ルータ->PC を配置し、PC をサーバ用に切り替えて社内の通信経路を確認する。',
+  company: {
     isDone: (_store, flags) => flags.companyOK,
     isDoing: (store) => hasAnyEdge(store?.company?.edges)
   },
-  {
-    id: 'ftp',
-    title: 'FTP 接続確認',
-    description: 'サーバ用 PC に FTP サーバアプリを入れ、接続が OK になることを確認する。',
+  ftp: {
     isDone: (_store, flags) => flags.ftpOK,
     isDoing: (_store, flags) => flags.companyOK
   }
-];
+};
 
-const EXPLANATION_STATES = [
-  {
-    id: 'home',
-    when: (flags) => !flags.homeOK,
-    statusLabel: '自宅ネットワーク: 未完了',
-    title: '自宅ネットワークの構成途中です',
-    lines: (summary) => [
-      '自宅ネットワークは ONU->ルータ->PC が揃うとブラウザ接続が OK になる設計です。',
-      `現在の進行度は ${summary.completed}/${summary.total} です。`,
-      `次に確認したい内容は「${summary.nextTask}」です。`
-    ]
-  },
-  {
-    id: 'company',
-    when: (flags) => flags.homeOK && !flags.companyOK,
-    statusLabel: '会社ネットワーク: 未完了',
-    title: '会社ネットワーク構築フェーズです',
-    lines: (summary) => [
-      '自宅ネットワークは完了しています。',
-      '会社ネットワークは ONU->ルータ->PC の構成で社内通信が成立し、PC をサーバ用に切り替えてアプリを入れます。',
-      `現在の進行度は ${summary.completed}/${summary.total} です。次は「${summary.nextTask}」を確認します。`
-    ]
-  },
-  {
-    id: 'ftp',
-    when: (flags) => flags.homeOK && flags.companyOK && !flags.ftpOK,
-    statusLabel: 'FTP 接続: 未確認',
-    title: 'FTP 接続の確認フェーズです',
-    lines: (summary) => [
-      '自宅/会社ネットワークは完了しています。',
-      'サーバ用 PC に FTP サーバアプリを入れて接続可能になると完了扱いになります。',
-      `現在の進行度は ${summary.completed}/${summary.total} です。`
-    ]
-  },
-  {
-    id: 'done',
-    when: (flags) => flags.homeOK && flags.companyOK && flags.ftpOK,
-    statusLabel: '全ステップ完了',
-    title: '学習フローは完了しています',
-    lines: (summary) => [
-      '全てのネットワーク構成が完了しています。',
-      '拠点ごとの構成差や通信の流れを地図から比較できます。',
-      `進行度は ${summary.completed}/${summary.total} です。`
-    ]
-  }
-];
+const TRAINING_STATE_RULES = {
+  homePending: (flags) => !flags.homeOK,
+  companyPending: (flags) => flags.homeOK && !flags.companyOK,
+  ftpPending: (flags) => flags.homeOK && flags.companyOK && !flags.ftpOK,
+  done: (flags) => flags.homeOK && flags.companyOK && flags.ftpOK
+};
 
-const buildTrainingExplanation = (flags, summary) => {
-  const found = EXPLANATION_STATES.find((state) => state.when(flags)) || EXPLANATION_STATES[0];
+const resolveTrainingState = (flags, summary) => {
+  const found = INSTRUCTION_TEXT.training.explanations.find((item) => {
+    const matcher = TRAINING_STATE_RULES[item.when];
+    return typeof matcher === 'function' ? matcher(flags) : false;
+  }) || INSTRUCTION_TEXT.training.explanations[0];
+
+  const context = { summary };
   return {
     id: found.id,
-    statusLabel: found.statusLabel,
+    statusLabel: renderTemplate(found.statusLabel, context),
     title: found.title,
-    lines: found.lines(summary)
+    lines: renderLines(found.lines, context)
   };
 };
 
 export const buildTrainingGuide = (store) => {
   const flags = getStatusFlags(store);
-  const steps = GUIDE_STEPS.map((step) => {
-    const done = step.isDone(store, flags);
-    const doing = !done && step.isDoing(store, flags);
+
+  const steps = INSTRUCTION_TEXT.training.steps.map((def) => {
+    const rules = TRAINING_STEP_RULES[def.id] || {};
+    const done = typeof rules.isDone === 'function' ? rules.isDone(store, flags) : false;
+    const doing = !done && (typeof rules.isDoing === 'function' ? rules.isDoing(store, flags) : false);
     const badge = badgeFrom(done, doing);
     return {
-      ...step,
+      ...def,
       state: badge.state,
       label: badge.label
     };
@@ -129,6 +90,6 @@ export const buildTrainingGuide = (store) => {
   return {
     steps,
     summary,
-    explanation: buildTrainingExplanation(flags, summary)
+    explanation: resolveTrainingState(flags, summary)
   };
 };
