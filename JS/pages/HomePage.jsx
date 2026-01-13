@@ -14,6 +14,12 @@ const DEVICE_TYPES = [
   { type: 'game', label: 'ゲーム機' }
 ];
 
+const STEP_STATE_LABELS = {
+  done: '完了',
+  doing: '進行中',
+  todo: '未着手'
+};
+
 const createDefaultRouterConfig = () => ({
   loginId: 'admin',
   loginPassword: 'admin',
@@ -136,8 +142,11 @@ export default function HomePage() {
     hasRouter,
     hasPc,
     hasClient,
-    status
-  }), [hasRouter, hasPc, hasClient, status]);
+    status,
+    credentialsDone,
+    wifiDone,
+    routerTutorialDone
+  }), [hasRouter, hasPc, hasClient, status, credentialsDone, wifiDone, routerTutorialDone]);
 
   const routerDevice = useMemo(
     () => state.devices.find((device) => device.type === 'router') || null,
@@ -384,6 +393,35 @@ export default function HomePage() {
               </p>
             ))}
           </div>
+          <div className="explain-steps">
+            <div className="explain-subtitle">進行ステップ</div>
+            <ul className="step-list">
+              {(explanation.steps || []).map((step) => (
+                <li key={`home-step-${step.id}`} className="step-item">
+                  <div className="step-head">
+                    <span className="step-label">{step.label}</span>
+                    <div className="step-tags">
+                      {step.optional && (
+                        <span className="step-optional">任意</span>
+                      )}
+                      <span className={`step-badge ${step.state}`}>
+                        {STEP_STATE_LABELS[step.state] || step.state}
+                      </span>
+                    </div>
+                  </div>
+                  {step.detail && (
+                    <div className="step-detail">{step.detail}</div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          {explanation.nextAction && (
+            <div className="explain-next">
+              <div className="explain-next-label">次にやること</div>
+              <div className="explain-next-body">{explanation.nextAction}</div>
+            </div>
+          )}
         </aside>
 
         <section className="sim-stage" ref={stageRef}>

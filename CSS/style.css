@@ -86,6 +86,25 @@ button {
   color: #fff;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.debug-btn {
+  border: 1px dashed var(--ink);
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.debug-btn:hover {
+  background: #f5e6df;
+}
+
 .site-main {
   flex: 1;
   padding: 20px 18px 24px;
@@ -138,6 +157,112 @@ button {
   color: var(--muted);
 }
 
+.explain-steps {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+
+.explain-subtitle {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.step-item {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.step-label {
+  font-weight: 600;
+}
+
+.step-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-optional {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.step-badge {
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.step-badge.done {
+  background: #e2efe3;
+  border-color: #4a7a42;
+  color: #2b4d24;
+}
+
+.step-badge.doing {
+  background: #fff1cf;
+  border-color: #b3851c;
+  color: #6b4a0f;
+}
+
+.step-badge.todo {
+  background: #f5e6df;
+  border-color: #b9826f;
+  color: #5b3b32;
+}
+
+.step-detail {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.explain-next {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fffaf2;
+  display: grid;
+  gap: 4px;
+}
+
+.explain-next-label {
+  font-weight: 700;
+}
+
+.explain-next-body {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .section-grid {
   display: grid;
   gap: 16px;
@@ -160,6 +285,12 @@ button {
   .site-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
   }
 
   .nav-list {
