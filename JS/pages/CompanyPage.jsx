@@ -482,7 +482,8 @@ export default function CompanyPage() {
     status,
     ftpEnabled,
     activeUpload,
-    lanClients
+    lanClients,
+    dnsDomain: state.dnsConfig.domain
   }), [
     hasRouter,
     hasPc,
@@ -494,7 +495,8 @@ export default function CompanyPage() {
     status,
     ftpEnabled,
     activeUpload,
-    lanClients
+    lanClients,
+    state.dnsConfig.domain
   ]);
 
   const routerDevice = useMemo(

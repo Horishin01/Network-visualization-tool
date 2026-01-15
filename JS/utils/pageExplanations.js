@@ -108,7 +108,10 @@ export const buildHomeExplanation = (data) => {
 export const buildCompanyExplanation = (data) => {
   const context = {
     status: data.status,
-    lanClientCount: data.lanClients ?? 0
+    lanClientCount: data.lanClients ?? 0,
+    domain: (data.dnsDomain && typeof data.dnsDomain === 'string'
+      ? data.dnsDomain
+      : '会社ドメイン')
   };
   const doneMap = {
     wan: data.hasRouter,

@@ -3,8 +3,23 @@ import AppShell from '../components/AppShell.jsx';
 import { createId, loadState, saveState } from '../utils/storage.js';
 import { syncHomeEdges } from '../utils/appStore.js';
 import { buildHomeExplanation } from '../utils/pageExplanations.js';
+import {
+  FTP_DEPLOY_KEY,
+  FTP_UPLOADS_KEY,
+  PREVIEW_SLOT_ID,
+  findUpload,
+  loadDeployments,
+  loadUploads
+} from '../utils/ftpStore.js';
 
 const STORAGE_KEY = 'network:home:v1';
+const COMPANY_STATE_KEY = 'network:company:v1';
+
+const normalizeCompanyDns = (raw) => {
+  const domain = typeof raw?.dnsConfig?.domain === 'string' ? raw.dnsConfig.domain.trim() : '';
+  const saved = !!raw?.dnsConfig?.savedAt && !!domain;
+  return { domain, saved };
+};
 
 const DEVICE_TYPES = [
   { type: 'router', label: 'ルータ' },
@@ -104,6 +119,13 @@ export default function HomePage() {
     input: 'http://192.168.1.1',
     error: ''
   });
+  const [ftpUploads, setFtpUploads] = useState(() => loadUploads());
+  const [ftpDeployments, setFtpDeployments] = useState(() => loadDeployments());
+  const [companyDns, setCompanyDns] = useState(() =>
+    normalizeCompanyDns(loadState(COMPANY_STATE_KEY, null))
+  );
+  const companyPreviewRef = useRef(null);
+  const [companyPreviewUrl, setCompanyPreviewUrl] = useState('');
   const stageRef = useRef(null);
   const onuRef = useRef(null);
 
@@ -118,6 +140,31 @@ export default function HomePage() {
   }, [state.routerConfig]);
 
   useEffect(() => {
+    const syncFtp = () => {
+      setFtpUploads(loadUploads());
+      setFtpDeployments(loadDeployments());
+    };
+    const syncDns = () => setCompanyDns(normalizeCompanyDns(loadState(COMPANY_STATE_KEY, null)));
+    syncFtp();
+    syncDns();
+
+    const onStorage = (event) => {
+      if (event.key === FTP_UPLOADS_KEY || event.key === FTP_DEPLOY_KEY) {
+        syncFtp();
+      }
+      if (event.key === COMPANY_STATE_KEY) {
+        syncDns();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('ftp:updated', syncFtp);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('ftp:updated', syncFtp);
+    };
+  }, []);
+
+  useEffect(() => {
     saveState(STORAGE_KEY, state);
   }, [state]);
 
@@ -125,6 +172,10 @@ export default function HomePage() {
   const hasRouter = types.includes('router');
   const hasPc = types.includes('pc');
   const hasClient = types.some((type) => ['pc', 'phone', 'tablet', 'game'].includes(type));
+  const activeUpload = useMemo(
+    () => findUpload(ftpUploads, ftpDeployments[PREVIEW_SLOT_ID]),
+    [ftpUploads, ftpDeployments]
+  );
 
   const homeEdges = useMemo(() => ({
     fiberOnu: hasRouter,
@@ -140,6 +191,9 @@ export default function HomePage() {
     wan: hasRouter ? 'OK' : '未接続',
     lan: hasRouter && hasClient ? 'OK' : '未接続'
   };
+  const companyDomain = (companyDns.domain || '').toLowerCase();
+  const companySiteReady = companyDns.saved && !!activeUpload;
+  const companyPreviewReady = companySiteReady && !!companyPreviewUrl;
   const credentialsDone = !!state.routerConfig.credentialsIssuedAt;
   const wifiDone = !!state.routerConfig.wifiUpdatedAt;
   const routerTutorialDone = credentialsDone && wifiDone;
@@ -255,6 +309,28 @@ export default function HomePage() {
   }, [selected?.id, selected?.type]);
 
   useEffect(() => {
+    if (companyPreviewRef.current) {
+      URL.revokeObjectURL(companyPreviewRef.current);
+      companyPreviewRef.current = null;
+    }
+    if (!activeUpload) {
+      setCompanyPreviewUrl('');
+      return undefined;
+    }
+    const url = URL.createObjectURL(
+      new Blob([activeUpload.content], { type: activeUpload.type || 'text/html' })
+    );
+    companyPreviewRef.current = url;
+    setCompanyPreviewUrl(url);
+    return () => {
+      if (companyPreviewRef.current) {
+        URL.revokeObjectURL(companyPreviewRef.current);
+        companyPreviewRef.current = null;
+      }
+    };
+  }, [activeUpload]);
+
+  useEffect(() => {
     window.addEventListener('resize', updateCables);
     return () => {
       window.removeEventListener('resize', updateCables);
@@ -351,7 +427,13 @@ export default function HomePage() {
       case 'router':
         return `WAN: ${status.wan} / LAN: ${status.lan} / 認証: ${credentialsDone ? '設定済み' : '未設定'} / Wi-Fi: ${wifiDone ? '設定済み' : '未設定'}`;
       case 'pc':
-        return `ブラウザ接続: ${status.lan === 'OK' ? 'OK' : '未接続'}`;
+        if (status.lan === 'OK') {
+          const companyNote = companySiteReady
+            ? ` / 会社HP: 「${companyDns.domain}」で確認可`
+            : ' / 会社HP: 会社ページでドメイン設定とアップロードを完了してください';
+          return `ブラウザ接続: OK${companyNote}`;
+        }
+        return 'ブラウザ接続: 未接続';
       case 'phone':
         return 'Wi-Fi 接続の確認端末です。';
       case 'tablet':
@@ -372,12 +454,59 @@ export default function HomePage() {
   };
 
   const handleNavigateUrl = () => {
-    const target = normalizeTargetUrl(pcView.input);
+    const targetInput = pcView.input;
+    const target = normalizeTargetUrl(targetInput);
+    const targetDomain = target.toLowerCase();
     if (target === '192.168.1.1') {
       setPcView((prev) => ({
         ...prev,
         mode: 'router',
         url: prev.input,
+        error: ''
+      }));
+      return;
+    }
+    if (companyDomain && targetDomain === companyDomain) {
+      if (!companyDns.saved) {
+        setPcView((prev) => ({
+          ...prev,
+          mode: 'browser',
+          url: prev.input,
+          error: '会社でドメインを保存してください。'
+        }));
+        return;
+      }
+      if (status.wan !== 'OK' || status.lan !== 'OK') {
+        setPcView((prev) => ({
+          ...prev,
+          mode: 'browser',
+          url: prev.input,
+          error: '自宅ネットワークが未接続です。配線とWi-Fi設定を確認してください。'
+        }));
+        return;
+      }
+      if (!activeUpload) {
+        setPcView((prev) => ({
+          ...prev,
+          mode: 'browser',
+          url: prev.input,
+          error: '会社HPがまだアップロードされていません。会社ページで FTP アップロードしてください。'
+        }));
+        return;
+      }
+      if (!companyPreviewReady) {
+        setPcView((prev) => ({
+          ...prev,
+          mode: 'browser',
+          url: prev.input,
+          error: '会社HPの読み込み準備中です。再度お試しください。'
+        }));
+        return;
+      }
+      setPcView((prev) => ({
+        ...prev,
+        mode: 'company',
+        url: targetInput,
         error: ''
       }));
       return;
@@ -395,6 +524,7 @@ export default function HomePage() {
       return null;
     }
     const showRouterUI = pcView.mode === 'router';
+    const showCompanyUI = pcView.mode === 'company';
     return (
       <div className="pc-simulator">
         <div className="pc-window">
@@ -446,7 +576,7 @@ export default function HomePage() {
                   移動
                 </button>
               </div>
-              {!showRouterUI && (
+              {!showRouterUI && !showCompanyUI && (
                 <div className="pc-browser-body">
                   {pcView.error ? (
                     <div className="pc-browser-error">{pcView.error}</div>
@@ -456,6 +586,11 @@ export default function HomePage() {
                       return (
                         <div className="pc-browser-blank">
                           ようこそ！インターネットに接続されています。URL に 192.168.1.1 を入力して設定画面へ進みます。
+                          {companySiteReady && (
+                            <div className="pc-browser-hint">
+                              会社HP確認: 「{companyDns.domain}」を入力すると会社HPを開けます。
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -465,6 +600,21 @@ export default function HomePage() {
                       </div>
                     );
                   })()}
+                </div>
+              )}
+              {showCompanyUI && (
+                <div className="pc-browser-body">
+                  {companyPreviewReady ? (
+                    <iframe
+                      className="pc-browser-iframe"
+                      title="会社HPプレビュー (自宅から)"
+                      src={companyPreviewUrl}
+                    />
+                  ) : (
+                    <div className="pc-browser-error">
+                      会社HPを読み込めませんでした。会社ページでアップロードとドメイン設定を確認してください。
+                    </div>
+                  )}
                 </div>
               )}
               {showRouterUI && (

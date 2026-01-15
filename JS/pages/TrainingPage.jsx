@@ -28,6 +28,7 @@ const COMPANY_ICON = L.icon({
 
 export default function TrainingPage() {
   const [guide, setGuide] = useState(() => buildTrainingGuide(AppStore.get()));
+  const [summary, setSummary] = useState(() => AppStore.readSummary());
 
   useEffect(() => {
     const mapElement = document.getElementById('map');
@@ -69,7 +70,10 @@ export default function TrainingPage() {
   }, []);
 
   useEffect(() => {
-    const update = () => setGuide(buildTrainingGuide(AppStore.get()));
+    const update = () => {
+      setGuide(buildTrainingGuide(AppStore.get()));
+      setSummary(AppStore.readSummary());
+    };
     update();
 
     const onStorage = () => update();
@@ -90,6 +94,25 @@ export default function TrainingPage() {
       }
     };
   }, []);
+
+  const ftpStep = guide.steps.find((step) => step.id === 'ftp');
+  const ftpDone = ftpStep?.state === 'done';
+  const nextCta = summary.homeOK
+    ? {
+        title: '次は会社設定に進む',
+        body: '自宅でインターネット接続できたので、会社ネットワークの設定を始めましょう。',
+        href: '/HTML/company.html',
+        label: '会社ページを開く'
+      }
+    : {
+        title: 'まず自宅ネットワークを完成',
+        body: 'ONU→ルータ→PC を置き、ブラウザ接続を OK にしてから会社設定へ進みます。',
+        href: '/HTML/home.html',
+        label: '自宅ページを開く'
+      };
+  const domainNote = ftpDone
+    ? '会社構成が終わったら、自宅ページで会社ドメインの HP を開けるか確認してみましょう。'
+    : '会社設定と FTP 接続を完了したら、自宅ページで会社ドメインの HP を開けるかチェックします。';
 
   return (
     <AppShell active="training">
@@ -112,6 +135,19 @@ export default function TrainingPage() {
               ))}
             </ul>
             <div className="next-task">次のタスク: {guide.summary.nextTask}</div>
+          </div>
+          <div className="next-hop">
+            <div className="next-hop-title">{nextCta.title}</div>
+            <p className="next-hop-body">{nextCta.body}</p>
+            <div className="next-hop-actions">
+              <a className="next-hop-btn primary" href={nextCta.href}>
+                {nextCta.label}
+              </a>
+              <a className="next-hop-btn" href="/HTML/training.html">
+                地図で位置を確認
+              </a>
+            </div>
+            <p className="next-hop-note">{domainNote}</p>
           </div>
         </aside>
 
