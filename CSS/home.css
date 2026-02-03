@@ -1,206 +1,500 @@
-/* ====== レイアウト（共通のstyle.cssを前提） ====== */
-.home-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 24px;
-    align-items: start
+.sim-grid {
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  gap: 16px;
+  align-items: stretch;
 }
 
-.card {
-    overflow: hidden
+.sim-stage {
+  border: 2px solid var(--ink);
+  background: #fffdf7;
+  padding: 16px;
+  position: relative;
+  min-height: 420px;
 }
 
-/* ====== キャンバス ====== */
-.home-canvas {
-    position: relative
+.stage-title {
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
-.home-roof {
-    height: 140px;
-    background: linear-gradient(180deg,rgba(0,0,0,0) 60%,transparent 60%), linear-gradient(135deg,#76808f 50%,transparent 0) left, linear-gradient(225deg,#76808f 50%,transparent 0) right;
-    background-size: 100% 100%,50% 100%,50% 100%;
-    background-repeat: no-repeat;
-    border-bottom: 1px solid var(--border,#dfe3e8)
+.house-frame {
+  position: absolute;
+  inset: 70px 60px 40px;
+  border: 2px solid var(--ink);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(245, 241, 232, 0.82) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  z-index: 0;
 }
 
-.home-stage {
-    position: relative;
-    height: 450px;
-    background: #fff;
-    border: 1px solid var(--border,#dfe3e8);
-    border-radius: 12px;
-    margin: 12px;
-    overflow: hidden
+.house-frame::before {
+  content: "";
+  position: absolute;
+  top: -54px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 180px solid transparent;
+  border-right: 180px solid transparent;
+  border-bottom: 54px solid rgba(245, 241, 232, 0.92);
+  border-top: none;
 }
 
-/* 「光」バッジは常に最前面でクリック可能に */
-.home-wan {
-    position: absolute;
-    left: -16px;
-    top: 42%;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #3b6df6;
-    color: #fff;
-    border: 0;
-    box-shadow: 0 2px 10px rgba(59,109,246,.35);
-    font-weight: 700;
-    cursor: pointer;
-    z-index: 4
+.onu-point {
+  position: absolute;
+  left: 40px;
+  top: 140px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 30px;
+  font-size: 0.8rem;
+  background: #fff;
 }
 
-/* レイヤ順：SVG(1) < 機器(2) < 光(4) */
-.home-cable-layer {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none
+.onu-label {
+  position: absolute;
+  left: 80px;
+  top: 138px;
+  z-index: 2;
+  border: 2px solid var(--ink);
+  padding: 2px 8px;
+  background: #fff;
+  font-weight: 600;
 }
 
-    .home-cable-layer .cable {
-        pointer-events: stroke
-    }
-
-.device, .router {
-    position: absolute;
-    min-width: 112px;
-    padding: .6rem .7rem;
-    border: 1px solid var(--border,#cfd6df);
-    border-radius: 10px;
-    background: #fff;
-    box-shadow: 0 1px 0 rgba(0,0,0,.02);
-    user-select: none;
-    z-index: 2
+.cable-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
 }
 
-    .router .router-label {
-        font-weight: 700
-    }
-
-    .device .label {
-        font-weight: 700
-    }
-
-    .device .ip {
-        display: block;
-        font-size: .82rem;
-        color: #64748b;
-        margin-top: .25rem
-    }
-
-/* ルーターポート */
-.port {
-    position: absolute;
-    right: -6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #2e7d32;
-    border: 2px solid #fff;
-    cursor: pointer
+.cable-line {
+  stroke-width: 3px;
+  stroke-linecap: round;
 }
 
-    .port.wan {
-        right: auto;
-        left: -6px;
-        background: #ff9800
-    }
-
-/* ケーブル色・選択 */
-.cable {
-    stroke-width: 3px
+.cable-line.fiber {
+  stroke: #ff9800;
+  stroke-dasharray: 6 4;
 }
 
-    .cable.lan {
-        stroke: #2e7d32
-    }
-
-    .cable.fiber {
-        stroke: #ff9800
-    }
-
-    .cable.selected {
-        stroke-dasharray: 6 4
-    }
-
-/* パレットなど（最小） */
-.home-side .home-palette {
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    gap: 8px;
-    margin: .5rem 0 12px
+.cable-line.lan {
+  stroke: #2e7d32;
 }
 
-.palette-item {
-    padding: .6rem .8rem;
-    background: #fff;
-    border: 1px solid var(--border,#dfe3e8);
-    border-radius: 10px;
-    cursor: pointer
+.device-board {
+  position: absolute;
+  inset: 200px 80px 60px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-    .palette-item:hover {
-        background: #f7f9fc
-    }
-
-    .palette-item.tool.tool-active {
-        outline: 2px solid #3b6df6
-    }
-
-.home-toggle {
-    display: flex;
-    gap: .6rem;
-    align-items: center;
-    margin: .5rem 0
+.router-slot {
+  display: flex;
+  justify-content: center;
 }
 
-.badge {
-    display: inline-block;
-    padding: .35rem .6rem;
-    border-radius: 999px;
-    background: #f0f2f6;
-    color: #334155;
-    font-size: .85rem
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
 }
 
-    .badge.on {
-        background: #e7f0ff;
-        color: #1149b8
-    }
-
-        .badge.on.step {
-            background: #fff4db;
-            color: #8a5a00
-        }
-
-/* 選択/ドラッグ */
-.close {
-    position: absolute;
-    right: 6px;
-    top: 6px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1px solid var(--border,#cfd6df);
-    background: #fff;
-    cursor: pointer;
-    line-height: 16px;
-    font-size: .85rem
+.device-chip {
+  position: relative;
+  border: 2px solid var(--ink);
+  background: #fff;
+  padding: 0;
+  text-align: center;
+  font-weight: 600;
 }
 
-.device.selected, .router.selected {
-    outline: 2px solid #3b6df6
+.device-chip.active {
+  background: #f4f1e8;
 }
 
-.dragging {
-    opacity: .9
+.device-select {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-/* メモ */
-.home-note {
-    margin: 8px 12px 0
+.device-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.side-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.palette {
+  border: 2px solid var(--ink);
+  background: #fffdf7;
+  padding: 12px;
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.palette-btn {
+  border: 2px solid var(--ink);
+  background: #fff;
+  padding: 6px 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.palette-btn:hover {
+  background: #f3f0e8;
+}
+
+.monitor {
+  border: 2px solid var(--ink);
+  background: #fffdf7;
+  padding: 12px;
+  min-height: 220px;
+}
+
+.monitor-status {
+  border: 2px solid var(--line);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+
+.monitor-detail {
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.pc-simulator {
+  margin-top: 12px;
+}
+
+.pc-window {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f7f9fc;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.08);
+}
+
+.pc-window-titlebar {
+  background: linear-gradient(90deg, #0f2f4a, #1f6b8c);
+  color: #f4f8fb;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.pc-window-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.dot.red {
+  background: #e25c5c;
+}
+
+.dot.yellow {
+  background: #e6c35a;
+}
+
+.dot.green {
+  background: #5abf85;
+}
+
+.pc-window-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #eaf1f6;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.pc-toolbar-label {
+  font-weight: 600;
+}
+
+.pc-toolbar-input {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.buffalo-frame {
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.buffalo-header {
+  background: linear-gradient(90deg, #184c73, #1f7a9f);
+  color: #f4f8fb;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buffalo-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.buffalo-sub {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.buffalo-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.buffalo-badge {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.buffalo-badge.done {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.buffalo-badge.todo {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pc-browser {
+  background: #fff;
+  min-height: 260px;
+}
+
+.pc-browser-body {
+  padding: 20px;
+  color: var(--muted);
+}
+
+.pc-browser-blank {
+  border: 1px dashed var(--line);
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  background: #fafcfe;
+}
+
+.pc-browser-hint {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.pc-browser-error {
+  border: 1px solid #e29b8a;
+  padding: 14px;
+  border-radius: 10px;
+  background: #fff5f2;
+  color: #6f3424;
+}
+
+.pc-browser-iframe {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pc-desktop {
+  background: linear-gradient(135deg, #1c4e76, #0d2f4f);
+  min-height: 260px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.desktop-icons {
+  display: grid;
+  gap: 12px;
+}
+
+.desktop-icon {
+  width: 90px;
+  height: 90px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  color: #f2f6ff;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 8px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+.desktop-icon:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.icon-image {
+  font-size: 1.6rem;
+}
+
+.icon-label {
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.buffalo-body {
+  display: grid;
+  gap: 12px;
+}
+
+.buffalo-section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.buffalo-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.buffalo-section-title {
+  font-weight: 700;
+}
+
+.buffalo-section-sub {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.buffalo-chip {
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+}
+
+.buffalo-chip.done {
+  background: #e2efe3;
+  border-color: #4a7a42;
+  color: #2b4d24;
+}
+
+.buffalo-chip.todo {
+  background: #fff1cf;
+  border-color: #b3851c;
+  color: #6b4a0f;
+}
+
+.buffalo-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.buffalo-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.buffalo-field input,
+.buffalo-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  background: #fff;
+}
+
+.buffalo-action {
+  justify-self: flex-start;
+  border: 2px solid var(--ink);
+  background: linear-gradient(90deg, #f0f5ff, #e4f2ff);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.buffalo-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-stage {
+    min-height: 360px;
+  }
+
+  .house-frame {
+    inset: 70px 40px 40px;
+  }
 }

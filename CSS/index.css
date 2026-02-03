@@ -1,0 +1,178 @@
+.slide-box {
+  position: relative;
+  border: 2px solid var(--ink);
+  min-height: 380px;
+  padding: 28px 36px 70px;
+  background: #fffdf7;
+}
+
+.slide-content {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.slide-figure {
+  margin: 0 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+}
+
+.slide-image {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+}
+
+.slide-caption {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.slide-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+
+.slide-text {
+  margin: 0;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.slide-arrow {
+  position: absolute;
+  bottom: 18px;
+  width: 46px;
+  height: 46px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.slide-arrow.left {
+  left: 24px;
+}
+
+.slide-arrow.right {
+  right: 24px;
+}
+
+.slide-arrow:hover {
+  background: #f2efe6;
+}
+
+.slide-indicator {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.next-steps {
+  margin-top: 16px;
+  border: 2px solid var(--ink);
+  background: #fffdf7;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.next-steps-head {
+  margin-bottom: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.next-steps-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.next-steps-lead {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.next-steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.next-step {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  display: grid;
+  gap: 6px;
+}
+
+.next-step-title {
+  font-weight: 700;
+}
+
+.next-step-body {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.next-step-link {
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.next-step-link:hover {
+  text-decoration: underline;
+}
+
+.slide-cta {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.slide-cta-text {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.slide-cta-btn {
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slide-cta-btn:hover {
+  background: #2b2621;
+}
+
+@media (max-width: 720px) {
+  .slide-box {
+    padding: 24px 18px 70px;
+  }
+}

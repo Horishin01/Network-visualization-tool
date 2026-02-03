@@ -1,90 +1,309 @@
-/* 全体共通 */
+:root {
+  --ink: #1f1c18;
+  --line: #bfb7a6;
+  --paper: #f6f2e7;
+  --panel: #fffdf7;
+  --muted: #5b554b;
+  --accent: #2d5a8c;
+}
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Segoe UI", sans-serif;
+  box-sizing: border-box;
 }
 
 body {
-    background-color: #f9fafb;
-    color: #333;
-    line-height: 1.6;
+  margin: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  color: var(--ink);
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(27, 21, 16, 0.08) 0px,
+      rgba(27, 21, 16, 0.08) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    var(--paper);
 }
 
-/* ヘッダー */
-header {
-    background-color: #2563eb;
-    color: white;
-    padding: 1rem 2rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-    header h1 {
-        font-size: 1.8rem;
-        margin-bottom: 0.5rem;
-    }
-
-nav ul {
-    display: flex;
-    gap: 1.5rem;
-    list-style: none;
+button {
+  font-family: inherit;
 }
 
-nav a {
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
+.sheet {
+  width: min(1400px, 96vw);
+  margin: 24px auto;
+  background: rgba(255, 255, 255, 0.86);
+  border: 2px solid var(--ink);
+  min-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
 }
 
-    nav a:hover {
-        text-decoration: underline;
-    }
-
-/* メイン */
-main {
-    padding: 2rem;
-    max-width: 900px;
-    margin: 0 auto;
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--ink);
 }
 
-.intro {
-    background-color: white;
-    padding: 2rem;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
+.site-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
 }
 
-    .intro h2 {
-        font-size: 1.6rem;
-        margin-bottom: 1rem;
-    }
+.nav-list {
+  list-style: none;
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
 
-    .intro p {
-        margin-bottom: 1.5rem;
-    }
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
 
-    .intro button {
-        background-color: #2563eb;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 1rem;
-    }
+.nav-link:hover {
+  border-color: var(--ink);
+}
 
-        .intro button:hover {
-            background-color: #1d4ed8;
-        }
+.nav-link.active {
+  background: var(--ink);
+  color: #fff;
+}
 
-/* フッター */
-footer {
-    background-color: #f1f5f9;
-    text-align: center;
-    padding: 1rem;
-    margin-top: 2rem;
-    font-size: 0.9rem;
-    color: #555;
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.debug-btn {
+  border: 1px dashed var(--ink);
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.debug-btn:hover {
+  background: #f5e6df;
+}
+
+.site-main {
+  flex: 1;
+  padding: 20px 18px 24px;
+}
+
+.site-footer {
+  border-top: 2px solid var(--ink);
+  text-align: center;
+  padding: 10px 18px 12px;
+  font-size: 0.9rem;
+}
+
+.panel {
+  border: 2px solid var(--ink);
+  background: var(--panel);
+  padding: 16px;
+}
+
+.panel-title {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.panel-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.explain-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.explain-status {
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.explain-body {
+  display: grid;
+  gap: 6px;
+  line-height: 1.6;
+}
+
+.explain-line {
+  margin: 0;
+  color: var(--muted);
+}
+
+.explain-steps {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+
+.explain-subtitle {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.step-item {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.step-label {
+  font-weight: 600;
+}
+
+.step-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-optional {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.step-badge {
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.step-badge.done {
+  background: #e2efe3;
+  border-color: #4a7a42;
+  color: #2b4d24;
+}
+
+.step-badge.doing {
+  background: #fff1cf;
+  border-color: #b3851c;
+  color: #6b4a0f;
+}
+
+.step-badge.todo {
+  background: #f5e6df;
+  border-color: #b9826f;
+  color: #5b3b32;
+}
+
+.step-detail {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.explain-next {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fffaf2;
+  display: grid;
+  gap: 4px;
+}
+
+.explain-next-label {
+  font-weight: 700;
+}
+
+.explain-next-body {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.section-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.action-btn {
+  border: 2px solid var(--ink);
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  background: #f4f1e8;
+}
+
+@media (max-width: 900px) {
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .nav-list {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .sheet {
+    width: min(92vw, 560px);
+  }
+
+  .site-main {
+    padding: 16px;
+  }
 }

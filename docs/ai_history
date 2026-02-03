@@ -1,0 +1,36 @@
+2026-01-05 CodeX
+PDF仕様に合わせて index/training/home/company/about ページを再作成し、共通CSSと各ページCSS、スライド切替・地図遷移・パレット追加・ローカルストレージ保存のJSを追加。
+2026-01-05 CodeX
+PDF仕様に合わせて React + Vite のマルチページ構成へ再構築。index/training/home/company/about のHTMLエントリ、CSS、Reactコンポーネント、localStorage保存を実装。
+2026-01-05 CodeX
+Trainingページの日本地図を静的シェイプの構成に調整し、技術仕様書とガイド案の参照先をReact構成に更新。
+2026-01-05 CodeX
+Training の日本地図を main ブランチの Leaflet 表示に切替。Leaflet 依存追加と仕様書/README の技術記載を更新。
+2026-01-05 CodeX
+mainブランチの判定ロジックを参考に、React版でも `app:network:saves:default` へ home/company の判定結果を保存するAppStoreヘルパーを追加。
+2026-01-05 CodeX
+Training 左カラムの指示書に進行度/次タスクの表示を追加し、バッジ用スタイルを用意。
+2026-01-05 CodeX
+Training の全体指示書をデータ定義化し、進行度・次のステップ・解説を動的表示に変更。
+2026-01-05 CodeX
+Training 下部を「解説」表示に切替し、状況に応じて文言が変わる説明文へ差し替え。
+2026-01-05 CodeX
+Home/Company の左パネルを動的な解説表示に変更し、状況に応じて説明が変わる構成へ更新。
+2026-01-05 CodeX
+Home/Company の機器パレット配置を削除できるようにし、削除時に状態とlocalStorageを更新。
+2026-01-05 CodeX
+Home/Company に WAN/ LAN の配線表示を追加し、ONU→ルータ→各端末の線を自動描画。
+2026-01-05 CodeX
+Home/Company の配線レイヤをリサイズ対応に修正し、ルータを上段に配置する表示構成へ調整。
+2026-01-05 CodeX
+Company のプレビュー枠に FTP アップロードと割り当て機能を追加し、会社HPの表示を実装。
+2026-01-05 CodeX
+FTPストアの読み込み時に型を正規化し、旧データでCompanyが白画面になる問題を回避。
+2026-01-05 CodeX
+Company のローカルストレージ内容を正規化し、旧形式データでクラッシュする問題を回避。
+2026-01-05 CodeX
+Company のプレビュー処理で変数の参照順を修正し、白画面になるエラーを解消。
+2026-01-05 CodeX
+ブラウザのランタイムエラーをVite開発サーバーのターミナルに転送するデバッグ機能を追加。
+2026-01-05 CodeX
+端末ログの整形と原因ヒントを追加し、デバッグ出力の可読性を向上。
